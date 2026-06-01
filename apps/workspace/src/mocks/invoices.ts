@@ -1,0 +1,42 @@
+import type { Invoice } from '@/types/record';
+
+export const mockInvoice: Invoice = {
+  id: 'inv-0000-0000-0000-000000000179',
+  number: 'INV-2026-0179',
+  customerName: 'PT Acme Indonesia',
+  customerNpwp: '01.123.456.7-001.000',
+  status: 'overdue',
+  issuedAt: '12 Apr 2026',
+  dueDate: '12 May 2026',
+  daysOverdue: 11,
+  terms: 'Net 30',
+  total: 197580000,
+  subtotal: 178000000,
+  taxRate: 11,
+  taxAmount: 19580000,
+  ownerId: 'u001-0000-0000-0000-000000000001',
+  ownerName: 'Andi Wijaya',
+  picName: 'Ibu Sinta',
+  picPhone: '+62 812 1144 5566',
+  linkedPo: 'PO-MBS/2026/V/0118',
+  items: [
+    { id: 'li-0001-0000-0000-000000000001', lineNumber: 1, description: 'Modul training "Operations Excellence" — 3 hari', quantity: 2, unitPrice: 25000000, total: 50000000 },
+    { id: 'li-0001-0000-0000-000000000002', lineNumber: 2, description: 'Lisensi software internal — annual, 50 users', quantity: 1, unitPrice: 96000000, total: 96000000 },
+    { id: 'li-0001-0000-0000-000000000003', lineNumber: 3, description: 'Implementation & support 90 hari', quantity: 1, unitPrice: 32000000, total: 32000000 },
+  ],
+  reminderCount: 3,
+  paymentCount: 0,
+  activityCount: 42,
+  aiFields: [
+    { label: 'Ringkasan · Customer health', value: 'PT Acme adalah pelanggan tier-1 dengan 28 invoice historis (Rp 847 jt total). Pernah telat 2 kali pada 2025 tapi selalu bayar penuh. Risiko: rendah. Saran: kirim reminder ramah dulu.', model: 'haiku-4-5', trigger: 'on_change', lastRunAt: '23 Mei 09:14' },
+    { label: 'Skor risiko fraud', value: 'Low · 0.12 — Pola pengeluaran sesuai histori. NPWP terverifikasi DJP. Tidak ada inkonsistensi alamat.', model: 'sonnet-4-5', trigger: 'on_create', lastRunAt: '12 Apr 11:02' },
+  ],
+  chatter: [
+    { id: 'ch-0001-0000-0000-000000000001', actorName: 'Dewi Rahmawati', actorInitials: 'DR', actorType: 'user', action: 'menambah catatan', content: 'Klien minta perpanjangan termin sampai akhir Mei. @Andi please review.', timestamp: '2m' },
+    { id: 'ch-0001-0000-0000-000000000002', actorName: 'AR Collector', actorInitials: 'AC', actorType: 'agent', action: 'kirim reminder email', content: 'Email ke sinta@acme.id · template dunning-1 · Delivered & opened', timestamp: '1h', badges: ['autonomous'] },
+    { id: 'ch-0001-0000-0000-000000000003', actorName: 'Sistem', actorInitials: 'SY', actorType: 'system', action: 'mengubah status ke Overdue', content: 'Pemicu: due_date < now() · flow: auto-overdue', timestamp: '12 May 00:00' },
+    { id: 'ch-0001-0000-0000-000000000004', actorName: 'Andi Wijaya', actorInitials: 'AW', actorType: 'user', action: 'mengirim email', content: 'Pengingat: Faktur INV-2026-0179 — Dear Ibu Sinta, mohon konfirmasi pembayaran…', timestamp: '10 May 14:32' },
+    { id: 'ch-0001-0000-0000-000000000005', actorName: 'Fraud Auditor', actorInitials: 'FA', actorType: 'agent', action: 'memutuskan', content: 'Skor risiko fraud: 0.12 (low) · NPWP terverifikasi DJP · pola sesuai histori.', timestamp: '12 Apr 11:02' },
+    { id: 'ch-0001-0000-0000-000000000006', actorName: 'Sistem', actorInitials: 'SY', actorType: 'system', action: 'membuat invoice dari PO-MBS/0118', timestamp: '12 Apr 09:14' },
+  ],
+};
