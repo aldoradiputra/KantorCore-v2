@@ -1,0 +1,11 @@
+import type { Deal } from '@/types/record';
+
+export const mockDeals: Deal[] = [
+  { id: 'd001-0000-0000-0000-000000000001', title: 'PT Anugerah Bumi · Q2', subtitle: 'Closing call', stage: 'closed_won', accountName: 'PT Anugerah Bumi', ownerId: 'u001-0000-0000-0000-000000000004', ownerInitials: 'FN', value: 178000000, closeDate: '22 May', aiScore: 0.84, aiScoreLabel: 'High', lastActivity: '38m' },
+  { id: 'd001-0000-0000-0000-000000000002', title: 'PT Maju Bersama · ERP upgrade', subtitle: '2 demos remaining', stage: 'negotiation', accountName: 'PT Maju Bersama', ownerId: 'u001-0000-0000-0000-000000000004', ownerInitials: 'FN', value: 248000000, closeDate: '30 May', aiScore: 0.72, aiScoreLabel: 'High', lastActivity: '2h' },
+  { id: 'd001-0000-0000-0000-000000000003', title: 'CV Bintang Timur · IS-HR', stage: 'negotiation', accountName: 'CV Bintang Timur', ownerId: 'u001-0000-0000-0000-000000000011', ownerInitials: 'HP', value: 86500000, closeDate: '31 May', aiScore: 0.58, aiScoreLabel: 'Med', lastActivity: '1d' },
+  { id: 'd001-0000-0000-0000-000000000004', title: 'PT Sumber Rejeki · IS-FIN', stage: 'proposal', accountName: 'PT Sumber Rejeki Mandiri', ownerId: 'u001-0000-0000-0000-000000000004', ownerInitials: 'FN', value: 124000000, closeDate: '14 Jun', aiScore: 0.42, aiScoreLabel: 'Med', lastActivity: '3d' },
+  { id: 'd001-0000-0000-0000-000000000005', title: 'PT Andalan Niaga · pilot', stage: 'proposal', accountName: 'PT Andalan Niaga', ownerId: 'u001-0000-0000-0000-000000000011', ownerInitials: 'HP', value: 56000000, closeDate: '07 Jun', aiScore: 0.51, aiScoreLabel: 'Med', lastActivity: '4d' },
+  { id: 'd001-0000-0000-0000-000000000006', title: 'UD Karya Bahari · onboarding', stage: 'qualified', accountName: 'UD Karya Bahari', ownerId: 'u001-0000-0000-0000-000000000011', ownerInitials: 'HP', value: 18000000, closeDate: '21 Jun', aiScore: 0.22, aiScoreLabel: 'Low', lastActivity: '14d' },
+  { id: 'd001-0000-0000-0000-000000000007', title: 'PT Permata Cipta · POS', stage: 'qualified', accountName: 'PT Permata Cipta', ownerId: 'u001-0000-0000-0000-000000000004', ownerInitials: 'FN', value: 42500000, closeDate: '28 Jun', aiScore: 0.49, aiScoreLabel: 'Med', lastActivity: '6d' },
+];
