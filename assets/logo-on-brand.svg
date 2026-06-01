@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 48" width="260" height="48" fill="none">
+  <g>
+    <rect x="4" y="4" width="9" height="9" rx="2" fill="#FFFFFF"></rect>
+    <rect x="16" y="4" width="9" height="9" rx="2" fill="#FFFFFF"></rect>
+    <rect x="28" y="4" width="9" height="9" rx="2" fill="#FFFFFF" opacity="0.55"></rect>
+    <rect x="4" y="16" width="9" height="9" rx="2" fill="#FFFFFF"></rect>
+    <rect x="16" y="16" width="9" height="9" rx="2" fill="#FFFFFF" opacity="0.8"></rect>
+    <rect x="28" y="16" width="9" height="9" rx="2" fill="#FFFFFF" opacity="0.35"></rect>
+    <rect x="4" y="28" width="9" height="9" rx="2" fill="#FFFFFF" opacity="0.6"></rect>
+    <rect x="16" y="28" width="9" height="9" rx="2" fill="#FFFFFF" opacity="0.4"></rect>
+    <rect x="28" y="28" width="9" height="9" rx="2" fill="#FFFFFF" opacity="0.2"></rect>
+    <rect x="28" y="28" width="9" height="9" rx="2" fill="#FFFFFF"></rect>
+  </g>
+  <text x="50" y="34" font-family="-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, system-ui, sans-serif" font-size="26" font-weight="800" letter-spacing="-0.5" fill="#FFFFFF">KantorCore</text>
+</svg>

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<title>KantorCore — Wireframes</title>
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="design-tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  body { display: flex; flex-direction: column; min-height: 100vh; margin: 0; background: var(--bg-canvas); }
+  .wf-top {
+    position: sticky; top: 0; z-index: var(--z-sticky);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+    height: var(--topbar-h);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 20px;
+  }
+  .wf-top .wm { display: flex; align-items: center; gap: 8px; }
+  .wf-top .wm img { width: 26px; height: 26px; }
+  .wf-top .wm strong { font: 700 14px/1 var(--font-sans); color: var(--text-primary); letter-spacing: -0.01em; }
+  .wf-top .wm span { font: 500 11px/1 var(--font-mono); color: var(--text-muted); padding: 2px 6px; border: 1px solid var(--border-subtle); border-radius: var(--r-sm); }
+  .wf-tabs { display: flex; gap: 2px; }
+  .wf-tab {
+    padding: 6px 12px;
+    font: 500 13px/1 var(--font-sans);
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: var(--r-sm);
+    border: 0; background: transparent;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .wf-tab:hover { color: var(--text-primary); background: var(--fill-subtle); }
+  .wf-tab.active { background: var(--fill-accent-subtle); color: var(--text-accent); font-weight: 600; }
+  .wf-spacer { flex: 1; }
+  .wf-controls { display: flex; gap: 6px; align-items: center; }
+  .wf-controls .wf-seg {
+    display: inline-flex; padding: 2px; background: var(--bg-sunken);
+    border: 1px solid var(--border-subtle); border-radius: var(--r-md);
+  }
+  .wf-controls .wf-seg button {
+    appearance: none; border: 0; background: transparent;
+    padding: 4px 10px; border-radius: 4px;
+    font: 500 12px/1 var(--font-sans); color: var(--text-muted); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .wf-controls .wf-seg button.on { background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-xs); }
+  .wf-controls .wf-accent {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid var(--bg-surface); box-shadow: 0 0 0 1px var(--border-subtle); cursor: pointer;
+  }
+  .wf-controls .wf-accent.on { box-shadow: 0 0 0 2px var(--accent-500); transform: scale(1.08); }
+
+  .wf-stage { flex: 1; background: var(--bg-canvas); position: relative; }
+  .wf-iframe {
+    width: 100%; height: calc(100vh - var(--topbar-h));
+    border: 0;
+    background: var(--bg-canvas);
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<header class="wf-top">
+  <div class="wm">
+    <img src="assets/logo.svg" alt="">
+    <strong>KantorCore</strong>
+    <span>Wireframes · v0.2</span>
+  </div>
+  <nav class="wf-tabs" id="tabs">
+    <button class="wf-tab active" data-src="screens/shell.html"><i data-icon="grid"></i>Shell</button>
+    <button class="wf-tab" data-src="screens/auth.html"><i data-icon="lock"></i>Auth</button>
+    <button class="wf-tab" data-src="screens/records.html"><i data-icon="invoice"></i>Records</button>
+    <button class="wf-tab" data-src="screens/views.html"><i data-icon="list"></i>Views</button>
+    <button class="wf-tab" data-src="screens/ai.html"><i data-icon="bot"></i>AI / Agents</button>
+    <button class="wf-tab" data-src="screens/admin.html"><i data-icon="settings"></i>Admin</button>
+    <button class="wf-tab" data-src="screens/conv.html"><i data-icon="message"></i>Conversations</button>
+    <button class="wf-tab" data-src="screens/portal.html"><i data-icon="globe"></i>Portal</button>
+    <button class="wf-tab" data-src="screens/mobile.html"><i data-icon="phone"></i>Mobile</button>
+  </nav>
+  <div class="wf-spacer"></div>
+  <div class="wf-controls">
+    <a class="kc-btn kc-btn-ghost kc-btn-sm" href="design-system.html" target="_blank"><i data-icon="sparkles"></i> Design system</a>
+    <span style="width: 4px;"></span>
+    <div class="wf-seg" id="theme">
+      <button class="on" data-theme-set="light"><i data-icon="sun"></i> Light</button>
+      <button data-theme-set="dark"><i data-icon="moon"></i> Dark</button>
+    </div>
+    <span style="width: 4px;"></span>
+    <span class="wf-accent on" data-accent-set="indigo"  style="background: #3B4FC4;"></span>
+    <span class="wf-accent"    data-accent-set="teal"    style="background: #0F7B6C;"></span>
+    <span class="wf-accent"    data-accent-set="purple"  style="background: #7A3FAA;"></span>
+    <span class="wf-accent"    data-accent-set="rose"    style="background: #B33453;"></span>
+    <span class="wf-accent"    data-accent-set="amber"   style="background: #B35A00;"></span>
+    <span class="wf-accent"    data-accent-set="emerald" style="background: #0F8554;"></span>
+  </div>
+</header>
+
+<div class="wf-stage">
+  <iframe class="wf-iframe" id="screen" src="screens/shell.html"></iframe>
+</div>
+
+<script src="icons.js"></script>
+<script>
+  const root = document.documentElement;
+  const frame = document.getElementById('screen');
+
+  function syncChild() {
+    try {
+      const cdoc = frame.contentDocument;
+      if (!cdoc || !cdoc.documentElement) return;
+      cdoc.documentElement.setAttribute('data-theme', root.getAttribute('data-theme'));
+      cdoc.documentElement.setAttribute('data-accent', root.getAttribute('data-accent'));
+    } catch (e) {}
+  }
+  frame.addEventListener('load', syncChild);
+
+  document.querySelectorAll('[data-theme-set]').forEach(b => {
+    b.addEventListener('click', () => {
+      root.setAttribute('data-theme', b.getAttribute('data-theme-set'));
+      document.querySelectorAll('#theme button').forEach(x => x.classList.toggle('on', x === b));
+      syncChild();
+    });
+  });
+  document.querySelectorAll('[data-accent-set]').forEach(b => {
+    b.addEventListener('click', () => {
+      root.setAttribute('data-accent', b.getAttribute('data-accent-set'));
+      document.querySelectorAll('[data-accent-set]').forEach(x => x.classList.toggle('on', x === b));
+      syncChild();
+    });
+  });
+  document.getElementById('tabs').addEventListener('click', e => {
+    const t = e.target.closest('[data-src]');
+    if (!t) return;
+    document.querySelectorAll('.wf-tab').forEach(x => x.classList.toggle('active', x === t));
+    frame.src = t.getAttribute('data-src');
+  });
+</script>
+</body></html>

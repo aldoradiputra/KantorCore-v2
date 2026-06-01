@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 48" width="260" height="48" fill="none">
+  
+  <g id="mark">
+    
+    <rect x="4" y="4" width="9" height="9" rx="2" fill="#3B4FC4"></rect>
+    <rect x="16" y="4" width="9" height="9" rx="2" fill="#3B4FC4"></rect>
+    <rect x="28" y="4" width="9" height="9" rx="2" fill="#3B4FC4" opacity="0.55"></rect>
+
+    <rect x="4" y="16" width="9" height="9" rx="2" fill="#3B4FC4"></rect>
+    <rect x="16" y="16" width="9" height="9" rx="2" fill="#3B4FC4" opacity="0.8"></rect>
+    <rect x="28" y="16" width="9" height="9" rx="2" fill="#3B4FC4" opacity="0.35"></rect>
+
+    <rect x="4" y="28" width="9" height="9" rx="2" fill="#3B4FC4" opacity="0.6"></rect>
+    <rect x="16" y="28" width="9" height="9" rx="2" fill="#3B4FC4" opacity="0.4"></rect>
+    <rect x="28" y="28" width="9" height="9" rx="2" fill="#3B4FC4" opacity="0.2"></rect>
+
+    
+    <rect x="28" y="28" width="9" height="9" rx="2" fill="#0F7B6C" opacity="0.9"></rect>
+  </g>
+
+  
+  
+  <text x="50" y="34" font-family="-apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, system-ui, sans-serif" font-size="26" font-weight="800" letter-spacing="-0.5" fill="#1A2B5A">Kantor<tspan fill="#3B4FC4">Core</tspan></text>
+
+  
+  
+</svg>

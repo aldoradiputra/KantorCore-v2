@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<title>KantorCore — Records (RecordShell)</title>
+<link rel="stylesheet" href="../design-tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="_shell.css">
+<style>
+  body { margin: 0; overflow: hidden; }
+
+  /* Record header */
+  .rec-head {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 14px var(--gutter) 0;
+  }
+  .rec-head-top { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .rec-head-top .rec-title { font: 700 22px/1.25 var(--font-sans); color: var(--text-primary); letter-spacing: -0.02em; }
+  .rec-head-top .rec-id { font: 500 12px/1 var(--font-mono); color: var(--text-muted); padding: 3px 6px; background: var(--fill-subtle); border-radius: var(--r-sm); }
+
+  .rec-pipe-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+
+  /* Smart buttons */
+  .smart-row {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(120px, 1fr);
+    gap: 1px;
+    background: var(--border-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .smart-btn {
+    background: var(--bg-surface);
+    padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 2px;
+    cursor: pointer;
+    transition: background var(--d-fast);
+  }
+  .smart-btn:hover { background: var(--fill-subtle); }
+  .smart-btn .sb-val { font: 700 18px/1 var(--font-sans); color: var(--text-primary); letter-spacing: -0.01em; }
+  .smart-btn .sb-lbl { font: 500 11px/1 var(--font-sans); color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+
+  /* Tabs */
+  .rec-tabs { display: flex; border-bottom: 1px solid var(--border-subtle); }
+  .rec-tab {
+    padding: 11px 14px;
+    font: 500 13px/1 var(--font-sans);
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .rec-tab:hover { color: var(--text-primary); }
+  .rec-tab.is-active { color: var(--text-primary); border-bottom-color: var(--accent-500); font-weight: 600; }
+  .rec-tab .count { font: 500 11px/1 var(--font-mono); padding: 1px 6px; background: var(--fill-subtle); border-radius: var(--r-full); color: var(--text-muted); }
+  .rec-tab.is-active .count { background: var(--fill-accent-subtle); color: var(--text-accent); }
+
+  /* Record body */
+  .rec-body {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    min-height: 0;
+    flex: 1;
+  }
+  .rec-form { padding: 18px var(--gutter); overflow: auto; }
+  .rec-aside {
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border-subtle);
+    overflow: auto;
+  }
+
+  /* Form sections */
+  .form-section { margin-bottom: 24px; }
+  .form-section-h {
+    font: 600 11px/1 var(--font-sans);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .form-section-h::before { content: ""; width: 6px; height: 6px; background: var(--accent-500); border-radius: 50%; }
+
+  .form-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px 32px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: 16px;
+  }
+  .form-grid .span-2 { grid-column: 1 / -1; }
+  .form-grid .fr {
+    display: grid; grid-template-columns: 160px 1fr; gap: 16px; align-items: baseline;
+    padding: 6px 0;
+  }
+  .form-grid .fr .lbl { font: 500 12px/1.4 var(--font-sans); color: var(--text-muted); padding-top: 4px; }
+  .form-grid .fr .val { font: 500 13px/1.5 var(--font-sans); color: var(--text-primary); }
+  .form-grid .fr .val .kc-input { height: 28px; padding: 0 8px; }
+  .form-grid .fr .val.is-readonly { color: var(--text-primary); padding: 4px 0; }
+
+  /* Line items */
+  .line-table th { background: var(--bg-sunken); }
+  .line-table tfoot td { border-top: 2px solid var(--border-strong); border-bottom: 0; font-weight: 600; padding: 8px 12px; }
+  .line-table tfoot tr.total td { font-size: 14px; color: var(--text-primary); }
+
+  /* Chatter */
+  .chatter { padding: 12px 16px; }
+  .chatter-comp {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    background: var(--bg-surface);
+    padding: 8px 10px;
+    margin-bottom: 14px;
+  }
+  .chatter-comp textarea {
+    width: 100%; border: 0; outline: 0; background: transparent;
+    resize: none;
+    font: 400 13px/1.5 var(--font-sans);
+    color: var(--text-primary);
+    min-height: 40px;
+  }
+  .chatter-comp .row { display: flex; align-items: center; gap: 4px; }
+  .chatter-comp .row .kc-spacer { flex: 1; }
+  .chatter-comp .tabs-mini { display: flex; gap: 4px; padding-bottom: 4px; }
+  .chatter-comp .tabs-mini > * {
+    font: 500 11px/1 var(--font-sans);
+    color: var(--text-muted);
+    padding: 4px 8px;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+  .chatter-comp .tabs-mini > .is-active { background: var(--fill-accent-subtle); color: var(--text-accent); }
+
+  .followers {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-bottom: 1px solid var(--border-subtle);
+    font: 500 11px/1 var(--font-sans); color: var(--text-muted);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+
+  /* Mini relations graph */
+  .rel-svg { width: 100%; height: 220px; }
+</style>
+</head>
+<body class="kc-shell">
+
+  <!-- Rail -->
+  <aside class="kc-rail">
+    <div class="kc-rail-logo"><i data-icon="grid"></i></div>
+    <button class="kc-rail-item" title="Home"><i data-icon="home"></i></button>
+    <button class="kc-rail-item" title="HR"><i data-icon="users"></i></button>
+    <button class="kc-rail-item is-active" title="Finance"><i data-icon="wallet"></i></button>
+    <button class="kc-rail-item" title="Inventory"><i data-icon="package"></i></button>
+    <button class="kc-rail-item" title="Procurement"><i data-icon="cart"></i></button>
+    <button class="kc-rail-item" title="Sales"><i data-icon="trend"></i></button>
+    <button class="kc-rail-item" title="CRM"><i data-icon="briefcase"></i></button>
+    <button class="kc-rail-item" title="Projects"><i data-icon="project"></i></button>
+    <div class="kc-spacer"></div>
+    <button class="kc-rail-item" title="Settings"><i data-icon="settings"></i></button>
+  </aside>
+
+  <!-- Sidebar -->
+  <aside class="kc-side">
+    <div class="kc-side-top">
+      <div class="kc-side-title">Finance</div>
+      <span class="kc-side-code">IS-FIN</span>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Receivables</div>
+      <a class="kc-side-item is-active" href="#"><span>Invoices</span><span class="kc-side-count">186</span></a>
+      <a class="kc-side-item" href="#"><span>Payments</span></a>
+      <a class="kc-side-item" href="#"><span>Credit notes</span></a>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Payables</div>
+      <a class="kc-side-item" href="#"><span>Bills</span><span class="kc-side-count">24</span></a>
+      <a class="kc-side-item" href="#"><span>Vendors</span></a>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Accounting</div>
+      <a class="kc-side-item" href="#"><span>Ledger</span></a>
+      <a class="kc-side-item" href="#"><i data-icon="pin" class="kc-side-pin"></i><span>CoreTax · e-Faktur</span></a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="kc-shell-main">
+    <header class="kc-topbar">
+      <div class="kc-topbar-left">
+        <button class="kc-tb-btn kc-tb-workspace">
+          <span class="kc-tb-workspace-mark">A</span>
+          <div class="kc-tb-workspace-name"><span>PT Acme Indonesia</span><span class="kc-tb-workspace-env">Production</span></div>
+          <i data-icon="chevron-down"></i>
+        </button>
+        <div class="kc-crumbs">
+          <a href="#">Finance</a><span class="kc-crumb-sep">/</span>
+          <a href="#">Invoices</a><span class="kc-crumb-sep">/</span>
+          <span class="kc-crumb-cur">INV-2026-0179</span>
+        </div>
+      </div>
+      <button class="kc-cmdk"><i data-icon="search"></i><span>Cari atau jalankan…</span><span class="kc-kbd">⌘K</span></button>
+      <div class="kc-topbar-right">
+        <button class="kc-tb-btn"><i data-icon="bot"></i><span class="kc-tb-dot kc-tb-dot-accent">3</span></button>
+        <button class="kc-tb-btn"><i data-icon="bell"></i><span class="kc-tb-dot">8</span></button>
+        <button class="kc-tb-btn kc-tb-user"><div class="kc-avatar kc-avatar-sm">AW</div></button>
+      </div>
+    </header>
+
+    <div class="kc-shell-content" style="display: flex; flex-direction: column;">
+
+      <!-- Record header -->
+      <div class="rec-head">
+        <div class="rec-head-top">
+          <button class="kc-btn kc-btn-ghost kc-btn-icon kc-btn-sm"><i data-icon="chevron-left"></i></button>
+          <button class="kc-btn kc-btn-ghost kc-btn-icon kc-btn-sm"><i data-icon="chevron-right"></i></button>
+          <span class="kc-mono kc-muted" style="font-size: 11px;">4 / 186</span>
+          <div style="width: 1px; height: 20px; background: var(--border-subtle); margin: 0 4px;"></div>
+
+          <span class="rec-id">INV-2026-0179</span>
+          <span class="rec-title">PT Acme Indonesia</span>
+
+          <span class="kc-badge kc-badge-danger" style="font-size: 11px;"><span class="kc-dot"></span>Overdue · 11d</span>
+
+          <div class="kc-spacer"></div>
+
+          <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="copy"></i></button>
+          <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="more"></i></button>
+          <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="download"></i>Unduh PDF</button>
+          <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="send"></i>Kirim reminder</button>
+          <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="check"></i>Catat pembayaran</button>
+        </div>
+
+        <div class="rec-pipe-row">
+          <div class="kc-pipeline">
+            <div class="kc-pipe kc-pipe-done">Draft</div>
+            <div class="kc-pipe kc-pipe-done">Sent</div>
+            <div class="kc-pipe kc-pipe-active">Overdue</div>
+            <div class="kc-pipe">Paid</div>
+            <div class="kc-pipe">Closed</div>
+          </div>
+          <div class="kc-spacer"></div>
+          <span class="kc-mono kc-muted" style="font-size: 11px;">Last edited 2 min ago by Andi Wijaya</span>
+        </div>
+
+        <div class="smart-row">
+          <div class="smart-btn"><span class="sb-val kc-mono">Rp 145.000.000</span><span class="sb-lbl">Total</span></div>
+          <div class="smart-btn"><span class="sb-val kc-mono">3</span><span class="sb-lbl">Items</span></div>
+          <div class="smart-btn"><span class="sb-val kc-mono">3</span><span class="sb-lbl">Reminders sent</span></div>
+          <div class="smart-btn"><span class="sb-val kc-mono">PO-MBS/2026/V/0118</span><span class="sb-lbl">Linked PO</span></div>
+          <div class="smart-btn"><span class="sb-val kc-mono">42</span><span class="sb-lbl">Activity events</span></div>
+        </div>
+
+        <div class="rec-tabs">
+          <div class="rec-tab is-active">Detail</div>
+          <div class="rec-tab">Items <span class="count">3</span></div>
+          <div class="rec-tab">Payments <span class="count">0</span></div>
+          <div class="rec-tab">Reminders <span class="count">3</span></div>
+          <div class="rec-tab">Attachments <span class="count">2</span></div>
+          <div class="rec-tab">Audit trail</div>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="rec-body">
+
+        <!-- Form -->
+        <div class="rec-form">
+
+          <div class="form-section">
+            <div class="form-section-h">Detail invoice</div>
+            <div class="form-grid">
+              <div class="fr"><span class="lbl">Customer</span><span class="val">PT Acme Indonesia <span class="kc-muted">· NPWP 01.123.456.7-001.000</span></span></div>
+              <div class="fr"><span class="lbl">Invoice #</span><span class="val kc-mono">INV-2026-0179</span></div>
+              <div class="fr"><span class="lbl">Issued</span><span class="val kc-mono">12 Apr 2026</span></div>
+              <div class="fr"><span class="lbl">Due</span><span class="val kc-mono" style="color: var(--state-danger);">12 May 2026 · 11d overdue</span></div>
+              <div class="fr"><span class="lbl">Term</span><span class="val">Net 30</span></div>
+              <div class="fr"><span class="lbl">PIC</span><span class="val">Ibu Sinta · <span class="kc-mono">+62 812 1144 5566</span></span></div>
+              <div class="fr"><span class="lbl">Linked PO</span><span class="val"><a href="#">PO-MBS/2026/V/0118</a></span></div>
+              <div class="fr"><span class="lbl">Owner</span><span class="val"><span class="kc-avatar kc-avatar-xs">AW</span> &nbsp; Andi Wijaya</span></div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-h">Line items · 3</div>
+            <div class="kc-card" style="overflow: hidden;">
+              <table class="kc-table line-table kc-table-compact">
+                <thead><tr><th style="width: 28px;">#</th><th>Description</th><th class="kc-th-num">Qty</th><th class="kc-th-num">Unit price</th><th class="kc-th-num">Total</th></tr></thead>
+                <tbody>
+                  <tr><td class="kc-muted">1</td><td>Modul training "Operations Excellence" — 3 hari</td><td class="kc-td-num">2</td><td class="kc-td-num kc-mono">25.000.000</td><td class="kc-td-num kc-mono">50.000.000</td></tr>
+                  <tr><td class="kc-muted">2</td><td>Lisensi software internal — annual, 50 users</td><td class="kc-td-num">1</td><td class="kc-td-num kc-mono">96.000.000</td><td class="kc-td-num kc-mono">96.000.000</td></tr>
+                  <tr><td class="kc-muted">3</td><td>Implementation &amp; support 90 hari</td><td class="kc-td-num">1</td><td class="kc-td-num kc-mono">32.000.000</td><td class="kc-td-num kc-mono">32.000.000</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><td colspan="4" style="text-align: right; color: var(--text-muted);">Subtotal</td><td class="kc-td-num kc-mono">178.000.000</td></tr>
+                  <tr><td colspan="4" style="text-align: right; color: var(--text-muted);">PPN 11%</td><td class="kc-td-num kc-mono">19.580.000</td></tr>
+                  <tr class="total"><td colspan="4" style="text-align: right;">Total</td><td class="kc-td-num kc-mono" style="font-size: 15px;">Rp 197.580.000</td></tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- AI Fields -->
+          <div class="form-section">
+            <div class="form-section-h">AI insights</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="kc-ai-field">
+                <div class="kc-ai-field-head"><i data-icon="sparkles"></i>Ringkasan · Customer health</div>
+                <div class="kc-ai-field-value">PT Acme adalah pelanggan tier-1 dengan 28 invoice historis (Rp 847 jt total). Pernah telat 2 kali pada 2025 tapi selalu bayar penuh. Risiko: rendah. Saran: kirim reminder ramah dulu.</div>
+                <div class="kc-ai-field-meta">
+                  <span><i data-icon="history" class="kc-icon-sm"></i> 23 Mei 09:14</span>
+                  <span class="kc-meta-sep">·</span>
+                  <span>haiku-4-5</span>
+                  <span class="kc-meta-sep">·</span>
+                  <span>on_change</span>
+                  <button class="kc-btn kc-btn-ghost kc-btn-xs" style="margin-left: auto;"><i data-icon="refresh" class="kc-icon-sm"></i>Re-run</button>
+                  <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="settings" class="kc-icon-sm"></i></button>
+                </div>
+              </div>
+              <div class="kc-ai-field">
+                <div class="kc-ai-field-head"><i data-icon="sparkles"></i>Skor risiko fraud</div>
+                <div class="kc-ai-field-value"><span class="kc-badge kc-badge-success" style="font-size: 11px;"><span class="kc-dot"></span>Low · 0.12</span> &nbsp; Pola pengeluaran sesuai histori. NPWP terverifikasi DJP. Tidak ada inkonsistensi alamat.</div>
+                <div class="kc-ai-field-meta">
+                  <span><i data-icon="history" class="kc-icon-sm"></i> 12 Apr 11:02</span>
+                  <span class="kc-meta-sep">·</span>
+                  <span>sonnet-4-5</span>
+                  <span class="kc-meta-sep">·</span>
+                  <span>on_create</span>
+                  <button class="kc-btn kc-btn-ghost kc-btn-xs" style="margin-left: auto;"><i data-icon="refresh" class="kc-icon-sm"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Related (graph mini-view) -->
+          <div class="form-section">
+            <div class="form-section-h">Relationships · ModelMeta</div>
+            <div class="kc-card kc-card-body">
+              <svg class="rel-svg" viewBox="0 0 760 220">
+                <defs>
+                  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                    <path d="M0,0 L10,5 L0,10 z" fill="var(--border-strong)"/>
+                  </marker>
+                </defs>
+                <!-- center -->
+                <g transform="translate(330 80)">
+                  <rect width="100" height="60" rx="8" fill="var(--fill-accent-subtle)" stroke="var(--accent-500)" stroke-width="1.5"/>
+                  <text x="50" y="26" text-anchor="middle" font-family="Inter" font-size="11" font-weight="700" fill="var(--text-accent)">Invoice</text>
+                  <text x="50" y="42" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="var(--text-muted)">INV-2026-0179</text>
+                </g>
+                <!-- left: customer -->
+                <g transform="translate(40 30)">
+                  <rect width="120" height="48" rx="6" fill="var(--bg-surface)" stroke="var(--border-strong)" stroke-width="1"/>
+                  <text x="60" y="20" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="var(--text-primary)">Customer</text>
+                  <text x="60" y="36" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="var(--text-muted)">PT Acme</text>
+                </g>
+                <line x1="160" y1="54" x2="328" y2="100" stroke="var(--border-strong)" stroke-width="1.5" marker-end="url(#ah)"/>
+                <text x="240" y="68" font-family="JetBrains Mono" font-size="9" fill="var(--text-muted)">belongs_to</text>
+                <!-- left bottom: PO -->
+                <g transform="translate(40 140)">
+                  <rect width="120" height="48" rx="6" fill="var(--bg-surface)" stroke="var(--border-strong)" stroke-width="1"/>
+                  <text x="60" y="20" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="var(--text-primary)">Purchase order</text>
+                  <text x="60" y="36" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="var(--text-muted)">PO-MBS/0118</text>
+                </g>
+                <line x1="160" y1="164" x2="328" y2="118" stroke="var(--border-strong)" stroke-width="1.5" marker-end="url(#ah)"/>
+                <text x="220" y="158" font-family="JetBrains Mono" font-size="9" fill="var(--text-muted)">references</text>
+                <!-- right top: payments -->
+                <g transform="translate(600 10)">
+                  <rect width="120" height="48" rx="6" fill="var(--bg-surface)" stroke="var(--border-strong)" stroke-width="1"/>
+                  <text x="60" y="20" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="var(--text-primary)">Payment</text>
+                  <text x="60" y="36" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="var(--text-muted)">has_many (0)</text>
+                </g>
+                <line x1="430" y1="100" x2="598" y2="40" stroke="var(--border-subtle)" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#ah)"/>
+                <!-- right middle: reminders -->
+                <g transform="translate(600 80)">
+                  <rect width="120" height="48" rx="6" fill="var(--bg-surface)" stroke="var(--border-strong)" stroke-width="1"/>
+                  <text x="60" y="20" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="var(--text-primary)">Reminder</text>
+                  <text x="60" y="36" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="var(--text-muted)">has_many (3)</text>
+                </g>
+                <line x1="430" y1="110" x2="598" y2="104" stroke="var(--border-strong)" stroke-width="1.5" marker-end="url(#ah)"/>
+                <!-- right bottom: agent runs -->
+                <g transform="translate(600 152)">
+                  <rect width="120" height="48" rx="6" fill="var(--fill-accent-subtle)" stroke="var(--accent-400)" stroke-width="1" stroke-dasharray="3 3"/>
+                  <text x="60" y="20" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600" fill="var(--text-accent)">AgentRun</text>
+                  <text x="60" y="36" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="var(--text-muted)">has_many (12)</text>
+                </g>
+                <line x1="430" y1="120" x2="598" y2="172" stroke="var(--border-strong)" stroke-width="1.5" marker-end="url(#ah)"/>
+              </svg>
+              <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); padding: 0 8px 6px;">From IS-PLAT ModelMeta · invoice.entity.json</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: chatter aside -->
+        <aside class="rec-aside">
+          <div class="followers">
+            <span style="margin-right: 4px;">Followers · 5</span>
+            <div class="kc-avatar-group">
+              <div class="kc-avatar kc-avatar-xs">AW</div>
+              <div class="kc-avatar kc-avatar-xs" style="background: var(--accent-100); color: var(--accent-700);">DR</div>
+              <div class="kc-avatar kc-avatar-xs" style="background: var(--neutral-300);">RH</div>
+              <div class="kc-avatar kc-avatar-xs" style="background: var(--accent-200); color: var(--accent-800);">LP</div>
+              <div class="kc-avatar kc-avatar-xs" style="background: var(--bg-surface); border: 1px solid var(--border-strong); color: var(--text-muted);">+1</div>
+            </div>
+            <div class="kc-spacer"></div>
+            <button class="kc-btn kc-btn-ghost kc-btn-xs">+ Follow</button>
+          </div>
+
+          <div class="chatter">
+            <div class="chatter-comp">
+              <div class="tabs-mini">
+                <div class="is-active">Note</div>
+                <div>Log activity</div>
+                <div>Send email</div>
+              </div>
+              <textarea placeholder="Tulis catatan internal… (gunakan @ untuk mention)"></textarea>
+              <div class="row">
+                <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="paperclip" class="kc-icon-sm"></i></button>
+                <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="sparkles" class="kc-icon-sm"></i> Draft with AI</button>
+                <div class="kc-spacer"></div>
+                <button class="kc-btn kc-btn-primary kc-btn-xs">Log</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="kc-chatter-item">
+                <div class="kc-avatar kc-avatar-sm" style="background: var(--accent-100); color: var(--accent-700);">DR</div>
+                <div class="kc-chatter-body">
+                  <div class="kc-chatter-head"><span class="kc-chatter-actor">Dewi Rahmawati</span><span class="kc-chatter-action">menambah catatan</span><span class="kc-chatter-time">2m</span></div>
+                  <div class="kc-chatter-content">Klien minta perpanjangan termin sampai akhir Mei. <strong>@Andi</strong> please review.</div>
+                </div>
+              </div>
+
+              <div class="kc-chatter-item">
+                <div class="kc-avatar kc-avatar-sm" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>
+                <div class="kc-chatter-body">
+                  <div class="kc-chatter-head"><span class="kc-chatter-actor">AR Collector</span><span class="kc-badge" style="font-size: 9px; padding: 1px 4px;">autonomous</span><span class="kc-chatter-action">kirim reminder email</span><span class="kc-chatter-time">1h</span></div>
+                  <div class="kc-chatter-content">Email ke <code>sinta@acme.id</code> · template <code>dunning-1</code> · <span class="kc-badge kc-badge-success" style="font-size: 9px;">Delivered &amp; opened</span></div>
+                </div>
+              </div>
+
+              <div class="kc-chatter-item">
+                <div class="kc-avatar kc-avatar-sm" style="background: var(--neutral-200);"><i data-icon="settings" class="kc-icon-sm"></i></div>
+                <div class="kc-chatter-body">
+                  <div class="kc-chatter-head"><span class="kc-chatter-actor">Sistem</span><span class="kc-chatter-action">mengubah status ke <strong>Overdue</strong></span><span class="kc-chatter-time">12 May 00:00</span></div>
+                  <div class="kc-chatter-content kc-system">Pemicu: <code>due_date &lt; now()</code> &middot; flow: <code>auto-overdue</code></div>
+                </div>
+              </div>
+
+              <div class="kc-chatter-item">
+                <div class="kc-avatar kc-avatar-sm">AW</div>
+                <div class="kc-chatter-body">
+                  <div class="kc-chatter-head"><span class="kc-chatter-actor">Andi Wijaya</span><span class="kc-chatter-action">mengirim email</span><span class="kc-chatter-time">10 May 14:32</span></div>
+                  <div class="kc-chatter-content"><strong>Pengingat: Faktur INV-2026-0179</strong><br><span class="kc-muted">Dear Ibu Sinta, mohon konfirmasi pembayaran untuk faktur senilai Rp 145.000.000 yang sudah jatuh tempo pada 12 Mei…</span></div>
+                </div>
+              </div>
+
+              <div class="kc-chatter-item">
+                <div class="kc-avatar kc-avatar-sm" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>
+                <div class="kc-chatter-body">
+                  <div class="kc-chatter-head"><span class="kc-chatter-actor">Fraud Auditor</span><span class="kc-chatter-action">memutuskan</span><span class="kc-chatter-time">12 Apr 11:02</span></div>
+                  <div class="kc-chatter-content kc-system">Skor risiko fraud: <strong>0.12 (low)</strong> · NPWP terverifikasi DJP · pola sesuai histori.</div>
+                </div>
+              </div>
+
+              <div class="kc-chatter-item">
+                <div class="kc-avatar kc-avatar-sm" style="background: var(--neutral-200);"><i data-icon="plus" class="kc-icon-sm"></i></div>
+                <div class="kc-chatter-body">
+                  <div class="kc-chatter-head"><span class="kc-chatter-actor">Sistem</span><span class="kc-chatter-action">membuat invoice dari PO-MBS/0118</span><span class="kc-chatter-time">12 Apr 09:14</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+
+    </div>
+  </div>
+
+<script src="../icons.js"></script>
+</body></html>

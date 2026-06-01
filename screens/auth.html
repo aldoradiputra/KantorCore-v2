@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<title>KantorCore — Auth</title>
+<link rel="stylesheet" href="../design-tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>
+  body { margin: 0; overflow: auto; background: var(--bg-canvas); min-height: 100vh; }
+  .auth-page { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+  .auth-art {
+    background: var(--bg-inverted);
+    color: var(--text-inverted);
+    padding: 48px 56px;
+    display: flex; flex-direction: column; gap: 32px;
+    position: relative; overflow: hidden;
+  }
+  :root[data-theme="dark"] .auth-art { background: #0B0D12; }
+  .auth-art::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(800px circle at 15% 80%, rgba(var(--accent-rgb), 0.18), transparent 50%),
+      radial-gradient(600px circle at 85% 20%, rgba(15, 123, 108, 0.12), transparent 50%);
+    pointer-events: none;
+  }
+  .auth-art > * { position: relative; z-index: 1; }
+  .auth-art .wm { display: flex; align-items: center; gap: 10px; }
+  .auth-art .wm img { height: 26px; }
+  .auth-art .wm strong { color: #fff; font: 700 16px/1 var(--font-sans); letter-spacing: -0.02em; }
+  .auth-art h1 { font: 700 36px/1.15 var(--font-sans); color: #fff; letter-spacing: -0.03em; max-width: 14ch; }
+  .auth-art .quote { font: 400 14px/1.6 var(--font-sans); color: rgba(255,255,255,0.65); max-width: 42ch; }
+  .auth-art .quote .by { color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 8px; }
+  .auth-art .grid-deco {
+    display: grid; grid-template-columns: repeat(3, 24px); gap: 4px;
+    margin-top: auto;
+  }
+  .auth-art .grid-deco span {
+    width: 24px; height: 24px;
+    background: var(--accent-400);
+    border-radius: 4px;
+    opacity: 0.5;
+  }
+  .auth-art .grid-deco span.lo { opacity: 0.2; }
+  .auth-art .grid-deco span.tk { background: #3CA292; opacity: 0.7; }
+
+  .auth-form {
+    padding: 56px;
+    display: flex; flex-direction: column;
+    background: var(--bg-surface);
+  }
+  .auth-flow { display: none; max-width: 380px; width: 100%; margin: auto; }
+  .auth-flow.is-active { display: flex; flex-direction: column; gap: 16px; }
+
+  .auth-tabs {
+    display: flex; gap: 4px; padding: 6px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 16px;
+  }
+  .auth-tabs button {
+    appearance: none; border: 0; background: transparent;
+    padding: 6px 10px;
+    border-radius: var(--r-sm);
+    font: 500 12px/1 var(--font-sans);
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .auth-tabs button.is-active { background: var(--fill-accent-subtle); color: var(--text-accent); font-weight: 600; }
+
+  .auth-h { font: 700 22px/1.2 var(--font-sans); color: var(--text-primary); letter-spacing: -0.02em; }
+  .auth-sub { font: 400 13px/1.55 var(--font-sans); color: var(--text-secondary); }
+  .auth-sso { display: flex; flex-direction: column; gap: 8px; }
+  .auth-sso button {
+    width: 100%; height: 38px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-surface);
+    border-radius: var(--r-md);
+    font: 500 13px/1 var(--font-sans);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .auth-sso button:hover { background: var(--fill-subtle); }
+  .auth-sep {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--text-muted);
+    font: 500 11px/1 var(--font-sans);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 4px 0;
+  }
+  .auth-sep::before, .auth-sep::after { content: ""; flex: 1; height: 1px; background: var(--border-subtle); }
+
+  .turnstile {
+    background: var(--bg-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    height: 64px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 14px;
+    font: 400 12px/1.4 var(--font-sans);
+    color: var(--text-muted);
+  }
+  .turnstile .check { width: 16px; height: 16px; border: 1.5px solid var(--border-strong); border-radius: 3px; }
+  .turnstile .check.on { background: var(--state-success); border-color: var(--state-success); }
+  .turnstile .meta { margin-left: auto; font: 500 10px/1 var(--font-mono); color: var(--text-muted); }
+
+  .otp { display: flex; gap: 8px; justify-content: center; }
+  .otp input {
+    width: 44px; height: 52px;
+    text-align: center;
+    font: 600 22px/1 var(--font-sans);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-md);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+  }
+  .otp input:focus { outline: none; border-color: var(--border-focus); box-shadow: var(--shadow-focus); }
+  .otp input.has { background: var(--fill-accent-subtle); border-color: var(--accent-500); color: var(--text-accent); font-weight: 700; }
+
+  .auth-tail {
+    margin-top: auto;
+    padding-top: 32px;
+    font: 400 12px/1.4 var(--font-sans);
+    color: var(--text-muted);
+    display: flex; gap: 12px;
+    flex-wrap: wrap;
+  }
+  .auth-tail a { color: var(--text-secondary); }
+
+  .strength {
+    display: flex; gap: 4px;
+    margin-top: 4px;
+  }
+  .strength span {
+    flex: 1; height: 3px;
+    background: var(--border-subtle);
+    border-radius: 2px;
+  }
+  .strength span.on { background: var(--state-success); }
+  .strength span.mid { background: var(--state-warn); }
+
+  .invite-box {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 10px;
+    background: var(--bg-sunken);
+  }
+  .invite-box .row { display: flex; gap: 10px; align-items: center; }
+  .invite-box .ttl { font: 600 13px/1.4 var(--font-sans); color: var(--text-primary); }
+  .invite-box .meta { font: 400 11px/1.4 var(--font-sans); color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<!-- Switch flows via top-right toggles -->
+<div style="position: fixed; top: 16px; right: 24px; z-index: 10; display: flex; gap: 6px;">
+  <button class="kc-btn kc-btn-secondary kc-btn-sm" data-flow="login">Login</button>
+  <button class="kc-btn kc-btn-secondary kc-btn-sm" data-flow="otp">2FA</button>
+  <button class="kc-btn kc-btn-secondary kc-btn-sm" data-flow="signup">Sign-up</button>
+  <button class="kc-btn kc-btn-secondary kc-btn-sm" data-flow="invite">Invite</button>
+  <button class="kc-btn kc-btn-secondary kc-btn-sm" data-flow="reset">Reset</button>
+</div>
+
+<div class="auth-page">
+  <!-- Art panel -->
+  <aside class="auth-art">
+    <div class="wm">
+      <img src="../assets/logo-on-dark.svg" alt="">
+    </div>
+    <div>
+      <h1 style="margin-bottom: 16px;">Sistem operasi korporat — untuk pekerjaan nyata.</h1>
+      <p class="quote">"KantorCore membantu kami menggabungkan pekerjaan finance, HR, dan sales dalam satu OS. Tidak perlu spreadsheet lagi."<div class="by">— Lestari Putri, CFO at PT Anugerah Bumi</div></p>
+    </div>
+    <div class="grid-deco" aria-hidden="true">
+      <span></span><span></span><span class="lo"></span>
+      <span></span><span></span><span class="lo"></span>
+      <span class="lo"></span><span class="lo"></span><span class="tk"></span>
+    </div>
+  </aside>
+
+  <!-- Form panel -->
+  <section class="auth-form">
+
+    <!-- LOGIN -->
+    <div class="auth-flow is-active" id="f-login">
+      <div class="auth-h">Welcome back.</div>
+      <div class="auth-sub">Sign in to <strong>PT Acme Indonesia</strong>. Different workspace? <a href="#">Switch →</a></div>
+
+      <div class="auth-sso">
+        <button><svg width="14" height="14" viewBox="0 0 24 24"><path d="M21.6 12.227c0-.66-.054-1.296-.154-1.909H12v3.617h5.39c-.232 1.25-.937 2.309-1.997 3.018v2.504h3.232c1.89-1.745 2.975-4.314 2.975-7.23z" fill="#4285F4"/><path d="M12 22c2.7 0 4.965-.895 6.62-2.423l-3.232-2.504c-.896.6-2.04.954-3.388.954-2.604 0-4.806-1.76-5.591-4.122H3.066v2.586A9.997 9.997 0 0 0 12 22z" fill="#34A853"/><path d="M6.41 13.905A6 6 0 0 1 6.09 12c0-.661.115-1.305.32-1.905V7.509H3.066A9.997 9.997 0 0 0 2 12c0 1.614.387 3.143 1.066 4.491l3.343-2.586z" fill="#FBBC05"/><path d="M12 5.973c1.47 0 2.787.505 3.823 1.495l2.866-2.865C16.96 2.99 14.696 2 12 2 8.09 2 4.713 4.246 3.066 7.509L6.41 10.095C7.195 7.733 9.396 5.973 12 5.973z" fill="#EA4335"/></svg> Continue with Google</button>
+      </div>
+
+      <div class="auth-sep">or</div>
+
+      <div class="kc-field">
+        <label class="kc-field-label">Work email</label>
+        <input class="kc-input" type="email" value="andi@acme.id">
+      </div>
+      <div class="kc-field">
+        <label class="kc-field-label">Password</label>
+        <input class="kc-input" type="password" value="••••••••••••">
+        <div style="display: flex; justify-content: space-between; margin-top: 6px;">
+          <label style="display: inline-flex; align-items: center; gap: 6px; font: 400 12px/1 var(--font-sans); color: var(--text-secondary);"><input type="checkbox" class="kc-check"> Remember me</label>
+          <a href="#" data-flow="reset" style="font: 500 12px/1 var(--font-sans);">Forgot?</a>
+        </div>
+      </div>
+
+      <div class="turnstile">
+        <div class="check on"><i data-icon="check" style="color: white; width: 12px; height: 12px;"></i></div>
+        <div>Success! You are human.</div>
+        <span class="meta">Cloudflare</span>
+      </div>
+
+      <button class="kc-btn kc-btn-primary kc-btn-lg" style="width: 100%;">Sign in</button>
+
+      <div style="text-align: center; font: 400 12px/1.4 var(--font-sans); color: var(--text-muted);">
+        Or <a href="#" style="font-weight: 500;">email me a magic link</a> instead.
+      </div>
+
+      <div class="auth-tail">
+        New to KantorCore? <a href="#" data-flow="signup">Create a workspace →</a>
+        <span style="margin-left: auto;"><a href="#">Privacy</a> · <a href="#">Terms</a></span>
+      </div>
+    </div>
+
+    <!-- 2FA -->
+    <div class="auth-flow" id="f-otp">
+      <div style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12px;"><a href="#" data-flow="login"><i data-icon="chevron-left" class="kc-icon-sm"></i></a> Back to sign in</div>
+      <div class="auth-h">Verify it's you.</div>
+      <div class="auth-sub">We sent a 6-digit code to <strong>andi@acme.id</strong>. Or use your authenticator app.</div>
+
+      <div class="otp" style="margin: 16px 0;">
+        <input class="has" value="3" maxlength="1">
+        <input class="has" value="1" maxlength="1">
+        <input class="has" value="7" maxlength="1">
+        <input class="has" value="0" maxlength="1">
+        <input maxlength="1">
+        <input maxlength="1">
+      </div>
+
+      <div style="text-align: center;">
+        <a href="#" style="font: 500 12px/1.4 var(--font-sans);">Resend code in 0:42</a>
+      </div>
+
+      <button class="kc-btn kc-btn-primary kc-btn-lg" style="width: 100%;">Verify &amp; continue</button>
+
+      <div style="text-align: center; padding-top: 16px; border-top: 1px solid var(--border-subtle); margin-top: 16px;">
+        <div class="kc-mono kc-muted" style="font-size: 11px; margin-bottom: 8px;">Or use a backup method</div>
+        <button class="kc-btn kc-btn-secondary kc-btn-sm">📱 Authenticator app</button>
+        <button class="kc-btn kc-btn-ghost kc-btn-sm">SMS</button>
+      </div>
+    </div>
+
+    <!-- SIGNUP -->
+    <div class="auth-flow" id="f-signup">
+      <div class="auth-h">Create a workspace.</div>
+      <div class="auth-sub">Free for 30 days · no credit card required. You'll be the workspace admin.</div>
+
+      <div class="kc-field">
+        <label class="kc-field-label">Your name</label>
+        <input class="kc-input" value="Andi Wijaya">
+      </div>
+      <div class="kc-field">
+        <label class="kc-field-label">Work email</label>
+        <input class="kc-input" value="andi@acme.id">
+      </div>
+      <div class="kc-field">
+        <label class="kc-field-label">Workspace name</label>
+        <input class="kc-input" value="PT Acme Indonesia">
+        <div class="kc-field-help">You can change this later.</div>
+      </div>
+      <div class="kc-field">
+        <label class="kc-field-label">Workspace URL</label>
+        <div class="kc-input-group">
+          <span class="kc-affix">app.kantorcore.com/</span>
+          <input class="kc-input kc-mono" value="acme">
+        </div>
+      </div>
+      <div class="kc-field">
+        <label class="kc-field-label">Create password</label>
+        <input class="kc-input" type="password" value="••••••••••">
+        <div class="strength"><span class="on"></span><span class="on"></span><span class="on"></span><span class="mid"></span></div>
+        <div class="kc-field-help">12+ chars · mix upper, lower, number, symbol.</div>
+      </div>
+
+      <button class="kc-btn kc-btn-primary kc-btn-lg" style="width: 100%;">Create workspace</button>
+      <div class="auth-tail">By signing up, you agree to our <a href="#">Terms</a> and <a href="#">Privacy</a>.</div>
+    </div>
+
+    <!-- INVITE -->
+    <div class="auth-flow" id="f-invite">
+      <div class="auth-h">You're invited.</div>
+      <div class="auth-sub">Lestari Putri has invited you to join the <strong>PT Acme Indonesia</strong> workspace on KantorCore.</div>
+
+      <div class="invite-box">
+        <div class="row"><span class="kc-tb-workspace-mark" style="width: 32px; height: 32px;">A</span><div><div class="ttl">PT Acme Indonesia</div><div class="meta">218 members · created Jan 2025</div></div></div>
+        <div class="row" style="border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+          <div class="kc-avatar kc-avatar-md" style="background: var(--accent-100); color: var(--accent-700);">LP</div>
+          <div><div class="ttl" style="font-weight: 500;">Lestari Putri · CFO</div><div class="meta">Invited you as <strong>Member</strong> · 23 May 2026</div></div>
+        </div>
+      </div>
+
+      <div class="kc-field">
+        <label class="kc-field-label">Your name</label>
+        <input class="kc-input" value="Joko Kusuma">
+      </div>
+      <div class="kc-field">
+        <label class="kc-field-label">Create password</label>
+        <input class="kc-input" type="password" placeholder="•••••••••">
+      </div>
+
+      <button class="kc-btn kc-btn-primary kc-btn-lg" style="width: 100%;">Accept &amp; join</button>
+      <div style="text-align: center;"><a href="#" style="font: 500 12px/1.4 var(--font-sans); color: var(--text-muted);">Decline this invitation</a></div>
+    </div>
+
+    <!-- RESET -->
+    <div class="auth-flow" id="f-reset">
+      <div style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12px;"><a href="#" data-flow="login"><i data-icon="chevron-left" class="kc-icon-sm"></i></a> Back to sign in</div>
+      <div class="auth-h">Reset password.</div>
+      <div class="auth-sub">Enter your email — we'll send you a link to choose a new password.</div>
+
+      <div class="kc-field">
+        <label class="kc-field-label">Work email</label>
+        <input class="kc-input" placeholder="you@company.com">
+      </div>
+
+      <button class="kc-btn kc-btn-primary kc-btn-lg" style="width: 100%;">Send reset link</button>
+
+      <div class="kc-banner" style="margin-top: 8px;">
+        <i data-icon="info"></i>
+        <div>If you don't see the email within a minute, check Spam/Junk. Some Indonesian email providers route automated mail aggressively.</div>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<script src="../icons.js"></script>
+<script>
+  document.querySelectorAll('[data-flow]').forEach(b => {
+    b.addEventListener('click', e => {
+      e.preventDefault();
+      const f = b.getAttribute('data-flow');
+      document.querySelectorAll('.auth-flow').forEach(x => x.classList.toggle('is-active', x.id === 'f-' + f));
+    });
+  });
+</script>
+</body></html>

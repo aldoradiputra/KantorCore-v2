@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<title>KantorCore — Conversations</title>
+<link rel="stylesheet" href="../design-tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="_shell.css">
+<style>
+  body { margin: 0; overflow: hidden; }
+  .conv-view { display: none; height: 100%; }
+  .conv-view.is-active { display: grid; grid-template-columns: 280px 1fr 320px; min-height: 0; }
+
+  /* Universal: thread list (left) */
+  .thread-list { background: var(--bg-surface); border-right: 1px solid var(--border-subtle); overflow: auto; }
+  .thread-list-h { padding: 12px 14px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 8px; }
+  .thread-list-h .title { font: 700 14px/1 var(--font-sans); }
+  .thread-search { padding: 8px 12px; }
+  .thread-search input { width: 100%; }
+  .thread-row { padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; display: grid; grid-template-columns: 32px 1fr; gap: 10px; }
+  .thread-row:hover { background: var(--fill-subtle); }
+  .thread-row.is-active { background: var(--fill-accent-subtle); }
+  .thread-row.unread .nm { font-weight: 700; }
+  .thread-row .nm { font: 500 13px/1.3 var(--font-sans); color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+  .thread-row .nm .when { margin-left: auto; font: 500 11px/1 var(--font-mono); color: var(--text-muted); }
+  .thread-row .preview { font: 400 12px/1.5 var(--font-sans); color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .thread-row .badge-row { display: flex; gap: 4px; margin-top: 6px; }
+
+  .ch-mark { width: 32px; height: 32px; border-radius: var(--r-md); display: grid; place-items: center; flex-shrink: 0; font: 700 12px/1 var(--font-sans); }
+  .ch-mark.wa { background: #25D366; color: white; }
+  .ch-mark.em { background: #EA4335; color: white; }
+  .ch-mark.web { background: var(--fill-accent-subtle); color: var(--text-accent); }
+  .ch-mark.sms { background: #9CA6E5; color: white; }
+  .ch-mark.tg { background: var(--bg-sunken); color: var(--text-primary); }
+
+  /* Center: message area */
+  .msg-pane { display: flex; flex-direction: column; min-height: 0; background: var(--bg-surface); }
+  .msg-head {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .msg-head .title { font: 600 14px/1 var(--font-sans); color: var(--text-primary); }
+  .msg-head .meta { font: 400 12px/1.4 var(--font-sans); color: var(--text-muted); margin-top: 2px; }
+  .msg-head .chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: var(--r-sm); font: 500 11px/1.3 var(--font-sans); }
+
+  .msg-body { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: var(--bg-canvas); }
+  .msg {
+    display: flex; gap: 8px; max-width: 78%;
+  }
+  .msg.out { align-self: flex-end; flex-direction: row-reverse; }
+  .msg .bubble {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    padding: 8px 12px;
+    border-radius: var(--r-lg);
+    font: 400 13px/1.5 var(--font-sans);
+    color: var(--text-primary);
+  }
+  .msg.out .bubble { background: var(--accent-600); color: white; border-color: var(--accent-600); }
+  .msg .meta { font: 500 11px/1 var(--font-mono); color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .msg.out .meta { justify-content: flex-end; }
+
+  .composer { border-top: 1px solid var(--border-subtle); padding: 12px 16px; background: var(--bg-surface); }
+  .composer textarea {
+    width: 100%; border: 1px solid var(--border-subtle); background: var(--bg-sunken);
+    border-radius: var(--r-md); padding: 8px 10px;
+    font: 400 13px/1.5 var(--font-sans); color: var(--text-primary);
+    resize: none; outline: 0; min-height: 60px;
+  }
+  .composer .row { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+  .composer .row .kc-spacer { flex: 1; }
+
+  /* Right: context */
+  .ctx-pane {
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border-subtle);
+    overflow: auto;
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .ctx-card { padding: 12px 14px; }
+  .ctx-card .h { font: 600 13px/1.4 var(--font-sans); color: var(--text-primary); margin-bottom: 6px; }
+  .ctx-card .row { display: grid; grid-template-columns: 86px 1fr; gap: 8px; padding: 3px 0; font-size: 12px; }
+  .ctx-card .row .k { color: var(--text-muted); }
+  .ctx-card .row .v { color: var(--text-primary); }
+
+  /* Helpdesk ticket-specific */
+  .sla-bar { height: 6px; background: var(--bg-sunken); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .sla-bar .fill { height: 100%; background: var(--state-success); }
+  .sla-bar .fill.warn { background: var(--state-warn); }
+  .sla-bar .fill.danger { background: var(--state-danger); }
+</style>
+</head>
+<body class="kc-shell">
+
+  <!-- Rail -->
+  <aside class="kc-rail">
+    <div class="kc-rail-logo"><i data-icon="grid"></i></div>
+    <button class="kc-rail-item" title="Home"><i data-icon="home"></i></button>
+    <button class="kc-rail-item" title="HR"><i data-icon="users"></i></button>
+    <button class="kc-rail-item" title="Finance"><i data-icon="wallet"></i></button>
+    <button class="kc-rail-item" title="Sales"><i data-icon="trend"></i></button>
+    <button class="kc-rail-item" title="CRM"><i data-icon="briefcase"></i></button>
+    <div class="kc-spacer"></div>
+    <button class="kc-rail-item is-active" title="Conversations" id="rail-conv"><i data-icon="message"></i></button>
+    <button class="kc-rail-item" title="Helpdesk"><i data-icon="help"></i></button>
+  </aside>
+
+  <!-- Sidebar -->
+  <aside class="kc-side">
+    <div class="kc-side-top">
+      <div class="kc-side-title">Conversations</div>
+      <span class="kc-side-code">IS-CHAT/EMAIL/OMNI</span>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Surfaces</div>
+      <a class="kc-side-item is-active" data-conv="omni"><i data-icon="inbox" class="kc-side-kind"></i><span>Omnichannel</span><span class="kc-side-count">14</span></a>
+      <a class="kc-side-item" data-conv="email"><i data-icon="mail" class="kc-side-kind"></i><span>Team email</span><span class="kc-side-count">8</span></a>
+      <a class="kc-side-item" data-conv="chat"><i data-icon="message" class="kc-side-kind"></i><span>Team chat</span></a>
+      <a class="kc-side-item" data-conv="ticket"><i data-icon="help" class="kc-side-kind"></i><span>Helpdesk ticket</span></a>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Channels · Team chat</div>
+      <a class="kc-side-item"><span># general</span></a>
+      <a class="kc-side-item"><span># finance</span><span class="kc-side-count">4</span></a>
+      <a class="kc-side-item is-active" data-channel="ops"><span># operations</span><span class="kc-side-count">2</span></a>
+      <a class="kc-side-item"><span># sales-pipeline</span></a>
+      <a class="kc-side-item"><span># agents-watercooler</span></a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="kc-shell-main">
+    <header class="kc-topbar">
+      <div class="kc-topbar-left">
+        <button class="kc-tb-btn kc-tb-workspace">
+          <span class="kc-tb-workspace-mark">A</span>
+          <div class="kc-tb-workspace-name"><span>PT Acme Indonesia</span><span class="kc-tb-workspace-env">Production</span></div>
+          <i data-icon="chevron-down"></i>
+        </button>
+        <div class="kc-crumbs">
+          <a href="#">Conversations</a><span class="kc-crumb-sep">/</span>
+          <span class="kc-crumb-cur" id="crumb">Omnichannel</span>
+        </div>
+      </div>
+      <button class="kc-cmdk"><i data-icon="search"></i><span>Cari atau jalankan…</span><span class="kc-kbd">⌘K</span></button>
+      <div class="kc-topbar-right">
+        <button class="kc-tb-btn"><i data-icon="bot"></i><span class="kc-tb-dot kc-tb-dot-accent">3</span></button>
+        <button class="kc-tb-btn"><i data-icon="bell"></i><span class="kc-tb-dot">8</span></button>
+        <button class="kc-tb-btn kc-tb-user"><div class="kc-avatar kc-avatar-sm">AW</div></button>
+      </div>
+    </header>
+
+    <div class="kc-shell-content" style="padding: 0;">
+
+      <!-- ───────────── OMNI ───────────── -->
+      <section class="conv-view is-active" id="cv-omni">
+        <div class="thread-list">
+          <div class="thread-list-h">
+            <div class="title">Omnichannel</div>
+            <div class="kc-spacer"></div>
+            <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="filter" class="kc-icon-sm"></i></button>
+          </div>
+          <div class="thread-search"><input class="kc-input" placeholder="Cari…"></div>
+
+          <div class="thread-row is-active unread">
+            <div class="ch-mark wa"><i data-icon="phone" class="kc-icon-sm"></i></div>
+            <div>
+              <div class="nm">Sinta (PT Acme) <span class="when">2m</span></div>
+              <div class="preview">Pak Andi, terkait invoice INV-…</div>
+              <div class="badge-row"><span class="kc-badge kc-badge-warn" style="font-size: 9px;">WhatsApp</span><span class="kc-badge" style="font-size: 9px;">@andi</span></div>
+            </div>
+          </div>
+          <div class="thread-row unread">
+            <div class="ch-mark em"><i data-icon="mail" class="kc-icon-sm"></i></div>
+            <div>
+              <div class="nm">Bayu Wicaksono <span class="when">14m</span></div>
+              <div class="preview">Re: Demo schedule next week</div>
+              <div class="badge-row"><span class="kc-badge" style="font-size: 9px;">Email</span></div>
+            </div>
+          </div>
+          <div class="thread-row">
+            <div class="ch-mark web"><i data-icon="message" class="kc-icon-sm"></i></div>
+            <div>
+              <div class="nm">Anonymous · web chat <span class="when">38m</span></div>
+              <div class="preview">Hi, do you support BPJS sync for 200+ employees?</div>
+              <div class="badge-row"><span class="kc-badge kc-badge-info" style="font-size: 9px;">Web chat</span></div>
+            </div>
+          </div>
+          <div class="thread-row">
+            <div class="ch-mark sms"><i data-icon="phone" class="kc-icon-sm"></i></div>
+            <div>
+              <div class="nm">+62 812 8800 1234 <span class="when">1h</span></div>
+              <div class="preview">Konfirmasi: PO sudah diterima.</div>
+              <div class="badge-row"><span class="kc-badge" style="font-size: 9px;">SMS</span></div>
+            </div>
+          </div>
+          <div class="thread-row">
+            <div class="ch-mark em"><i data-icon="mail" class="kc-icon-sm"></i></div>
+            <div>
+              <div class="nm">CV Bintang Timur · billing <span class="when">2h</span></div>
+              <div class="preview">[Auto] Payment receipt for INV-2026-0173</div>
+              <div class="badge-row"><span class="kc-badge kc-badge-success" style="font-size: 9px;">Resolved</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="msg-pane">
+          <div class="msg-head">
+            <div class="ch-mark wa" style="width: 36px; height: 36px;"><i data-icon="phone"></i></div>
+            <div>
+              <div class="title">Sinta Wahyuni</div>
+              <div class="meta">PT Acme Indonesia · WhatsApp Business · linked to INV-2026-0179</div>
+            </div>
+            <div class="kc-spacer"></div>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm">Assign</button>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="check"></i>Resolve</button>
+            <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="more"></i></button>
+          </div>
+          <div class="msg-body">
+            <div style="text-align: center; font: 500 11px/1 var(--font-mono); color: var(--text-muted); padding: 4px 0;">23 May · 09:14</div>
+            <div class="msg">
+              <div class="ch-mark wa" style="width: 24px; height: 24px; font-size: 10px;">S</div>
+              <div>
+                <div class="bubble">Pak Andi, terkait invoice INV-2026-0179, apakah bisa minta perpanjangan sampai akhir Mei? Cashflow kami sedang ketat karena project tertunda di sisi klien.</div>
+                <div class="meta">09:14 · WhatsApp</div>
+              </div>
+            </div>
+            <div class="msg out">
+              <div>
+                <div class="bubble">Halo Bu Sinta, terima kasih sudah konfirmasi. Saya cek dulu dengan finance — biasanya kami bisa fleksibel untuk pelanggan dengan record bagus seperti Acme. Saya kabari dalam 30 menit ya.</div>
+                <div class="meta">Andi · 09:18 · ✓✓</div>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="ch-mark" style="width: 24px; height: 24px; background: var(--fill-accent-subtle); color: var(--text-accent); border-radius: 50%;"><i data-icon="bot" class="kc-icon-sm"></i></div>
+              <div>
+                <div class="bubble" style="background: var(--fill-accent-subtle); color: var(--text-accent); border-color: transparent;">
+                  <strong>AR Collector · internal note</strong><br>
+                  Customer has paid 26/28 invoices on time. Suggested: approve Net 45 extension. Pulled history at 09:20.
+                </div>
+                <div class="meta"><i data-icon="bot" class="kc-icon-sm"></i> internal · 09:20</div>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <textarea placeholder="Reply via WhatsApp…"></textarea>
+            <div class="row">
+              <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="paperclip" class="kc-icon-sm"></i></button>
+              <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="sparkles" class="kc-icon-sm"></i>Suggest</button>
+              <div class="kc-spacer"></div>
+              <button class="kc-btn kc-btn-secondary kc-btn-sm">Save draft</button>
+              <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="send" class="kc-icon-sm"></i>Send</button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="ctx-pane">
+          <div class="kc-card ctx-card">
+            <div class="h">Contact</div>
+            <div class="row"><span class="k">Name</span><span class="v">Sinta Wahyuni</span></div>
+            <div class="row"><span class="k">Title</span><span class="v">Finance Manager</span></div>
+            <div class="row"><span class="k">Company</span><span class="v"><a href="#">PT Acme Indonesia</a></span></div>
+            <div class="row"><span class="k">Phone</span><span class="v kc-mono">+62 812 1144 5566</span></div>
+            <div class="row"><span class="k">Email</span><span class="v kc-mono">sinta@acme.id</span></div>
+          </div>
+          <div class="kc-card ctx-card">
+            <div class="h">Linked record</div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0;">
+              <i data-icon="invoice" style="color: var(--text-accent);"></i>
+              <div>
+                <div style="font: 600 13px/1.3 var(--font-sans);">INV-2026-0179</div>
+                <div class="t-caption">Rp 145.000.000 · <span style="color: var(--state-danger);">overdue 11d</span></div>
+              </div>
+            </div>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm" style="width: 100%; margin-top: 6px;">Open record →</button>
+          </div>
+          <div class="kc-card ctx-card">
+            <div class="h">Recent conversations</div>
+            <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+              · 10 May · email · Reminder payment<br>
+              · 03 Apr · WhatsApp · Quote follow-up<br>
+              · 28 Mar · web chat · Initial inquiry
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- ───────────── EMAIL (shared inbox) ───────────── -->
+      <section class="conv-view" id="cv-email">
+        <div class="thread-list">
+          <div class="thread-list-h"><div class="title">Inbox · finance@acme.id</div></div>
+          <div class="thread-search">
+            <div class="kc-seg"><button class="kc-seg-opt kc-seg-opt-active">All <span style="margin-left: 4px; color: var(--text-muted);">8</span></button><button class="kc-seg-opt">Open</button><button class="kc-seg-opt">Snoozed</button></div>
+          </div>
+          <div class="thread-row is-active unread"><div class="ch-mark em"><i data-icon="mail" class="kc-icon-sm"></i></div><div><div class="nm">Bayu Wicaksono <span class="when">14m</span></div><div class="preview">Re: Demo next week — confirming Thursday at 14:00</div><div class="badge-row"><span class="kc-badge kc-badge-warn" style="font-size: 9px;">@andi</span></div></div></div>
+          <div class="thread-row"><div class="ch-mark em"><i data-icon="mail" class="kc-icon-sm"></i></div><div><div class="nm">CV Bintang Timur <span class="when">38m</span></div><div class="preview">Konfirmasi pembayaran invoice 0173</div><div class="badge-row"><span class="kc-badge kc-badge-success" style="font-size: 9px;">Resolved</span></div></div></div>
+          <div class="thread-row"><div class="ch-mark em"><i data-icon="mail" class="kc-icon-sm"></i></div><div><div class="nm">Maria · Mandiri Bank <span class="when">2h</span></div><div class="preview">Recon report attached</div><div class="badge-row"><span class="kc-badge" style="font-size: 9px;">snoozed +3d</span></div></div></div>
+        </div>
+        <div class="msg-pane">
+          <div class="msg-head">
+            <div>
+              <div class="title">Re: Demo next week — confirming Thursday at 14:00</div>
+              <div class="meta">From Bayu Wicaksono &lt;bayu@cvpermata.id&gt; · To: finance@acme.id · CC: andi@acme.id</div>
+            </div>
+            <div class="kc-spacer"></div>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm">Assign</button>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="clock" class="kc-icon-sm"></i>Snooze</button>
+            <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="check"></i>Resolve</button>
+          </div>
+          <div class="msg-body">
+            <div class="kc-card kc-card-body" style="max-width: 720px; width: 100%; align-self: flex-start;">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;"><div class="kc-avatar kc-avatar-md" style="background: var(--accent-100); color: var(--accent-700);">BW</div><div style="flex: 1;"><div style="font-weight: 600;">Bayu Wicaksono</div><div class="t-caption">bayu@cvpermata.id · 14m ago</div></div></div>
+              <div style="font: 400 13px/1.6 var(--font-sans); color: var(--text-primary);">
+                Pak Andi,<br><br>
+                Sesuai diskusi, kami konfirmasi untuk demo Kamis 27 Mei pukul 14:00 di kantor kami (Jl. Kemang Selatan 42, Jakarta Selatan). Kami akan diikuti oleh 4 orang dari tim HR &amp; Finance.<br><br>
+                Mohon dipersiapkan demo:<br>
+                · Sinkronisasi BPJS Ketenagakerjaan untuk 80 karyawan<br>
+                · Payroll calculation flow + e-Faktur<br><br>
+                Terima kasih,<br>
+                Bayu
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <textarea placeholder="Reply…"></textarea>
+            <div class="row">
+              <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="paperclip" class="kc-icon-sm"></i></button>
+              <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="sparkles" class="kc-icon-sm"></i>Draft reply</button>
+              <div class="kc-spacer"></div>
+              <button class="kc-btn kc-btn-secondary kc-btn-sm">Save draft</button>
+              <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="send" class="kc-icon-sm"></i>Send</button>
+            </div>
+          </div>
+        </div>
+        <aside class="ctx-pane">
+          <div class="kc-card ctx-card">
+            <div class="h">Lead</div>
+            <div class="row"><span class="k">Source</span><span class="v">Web form</span></div>
+            <div class="row"><span class="k">Score</span><span class="v"><span class="kc-badge kc-badge-success" style="font-size: 10px;">High · 0.84</span></span></div>
+            <div class="row"><span class="k">Company</span><span class="v">CV Permata Indah</span></div>
+            <div class="row"><span class="k">Size</span><span class="v">80 employees</span></div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- ───────────── CHAT (team) ───────────── -->
+      <section class="conv-view" id="cv-chat">
+        <div class="thread-list">
+          <div class="thread-list-h"><div class="title">Members · # operations</div></div>
+          <div class="thread-search"><input class="kc-input" placeholder="Cari anggota…"></div>
+          <div class="thread-row" style="display: flex; gap: 10px;"><div class="kc-avatar kc-avatar-md kc-avatar-presence">AW</div><div><div style="font-weight: 500; font-size: 13px;">Andi Wijaya</div><div class="t-caption">VP Ops · online</div></div></div>
+          <div class="thread-row" style="display: flex; gap: 10px;"><div class="kc-avatar kc-avatar-md" style="background: var(--accent-100); color: var(--accent-700);">LP</div><div><div style="font-weight: 500; font-size: 13px;">Lestari Putri</div><div class="t-caption">CFO · 14m ago</div></div></div>
+          <div class="thread-row" style="display: flex; gap: 10px;"><div class="kc-avatar kc-avatar-md kc-avatar-presence">DR</div><div><div style="font-weight: 500; font-size: 13px;">Dewi Rahmawati</div><div class="t-caption">Procurement · online</div></div></div>
+          <div class="thread-row" style="display: flex; gap: 10px;"><div class="kc-avatar kc-avatar-md" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div><div><div style="font-weight: 500; font-size: 13px;">Ops Bot</div><div class="t-caption">autonomous</div></div></div>
+        </div>
+        <div class="msg-pane">
+          <div class="msg-head">
+            <div>
+              <div class="title"># operations</div>
+              <div class="meta">12 members · "Tempat koordinasi tim operations sehari-hari"</div>
+            </div>
+            <div class="kc-spacer"></div>
+            <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="bell" class="kc-icon-sm"></i></button>
+            <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="pin" class="kc-icon-sm"></i></button>
+          </div>
+          <div class="msg-body" style="gap: 6px;">
+            <div style="text-align: center; font: 500 11px/1 var(--font-mono); color: var(--text-muted); padding: 4px 0;">Today</div>
+            <div class="msg" style="max-width: 100%;"><div class="kc-avatar kc-avatar-md">AW</div><div style="flex: 1;"><div style="display: flex; align-items: baseline; gap: 6px;"><span style="font: 600 13px/1 var(--font-sans);">Andi Wijaya</span><span class="kc-mono kc-muted" style="font-size: 11px;">09:14</span></div><div style="font: 400 13px/1.55 var(--font-sans); color: var(--text-primary); margin-top: 2px;">Tim, demo Anugerah Bumi closing call jam 14:30. <strong>@Fitri</strong> siap-siap.</div></div></div>
+            <div class="msg" style="max-width: 100%;"><div class="kc-avatar kc-avatar-md">FN</div><div style="flex: 1;"><div style="display: flex; align-items: baseline; gap: 6px;"><span style="font: 600 13px/1 var(--font-sans);">Fitri Nurhaliza</span><span class="kc-mono kc-muted" style="font-size: 11px;">09:16</span></div><div style="font: 400 13px/1.55 var(--font-sans); color: var(--text-primary); margin-top: 2px;">Siap pak 👍 contract sudah siap di drive.</div></div></div>
+            <div class="msg" style="max-width: 100%;"><div class="kc-avatar kc-avatar-md" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div><div style="flex: 1;"><div style="display: flex; align-items: baseline; gap: 6px;"><span style="font: 600 13px/1 var(--font-sans);">Ops Bot</span><span class="kc-badge" style="font-size: 9px;">autonomous</span><span class="kc-mono kc-muted" style="font-size: 11px;">09:18</span></div><div style="font: 400 13px/1.55 var(--font-sans); color: var(--text-primary); margin-top: 2px;">Reminder: SPT Masa PPN jatuh tempo dalam 7 hari (30 Mei). 41 invoice belum di-e-Faktur.<br><a href="#">Lihat di CoreTax →</a></div></div></div>
+          </div>
+          <div class="composer">
+            <textarea placeholder="Tulis pesan ke # operations (gunakan @ untuk mention, / untuk command)"></textarea>
+            <div class="row">
+              <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="paperclip" class="kc-icon-sm"></i></button>
+              <button class="kc-btn kc-btn-ghost kc-btn-xs">@</button>
+              <button class="kc-btn kc-btn-ghost kc-btn-xs">/</button>
+              <div class="kc-spacer"></div>
+              <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="send" class="kc-icon-sm"></i>Send <span class="kc-kbd" style="background: transparent; border: 0; color: rgba(255,255,255,0.7);">↵</span></button>
+            </div>
+          </div>
+        </div>
+        <aside class="ctx-pane">
+          <div class="kc-card ctx-card">
+            <div class="h">Pinned</div>
+            <div style="font-size: 12px; line-height: 1.55; color: var(--text-secondary);">
+              · <a href="#">Q2 operating plan</a><br>
+              · <a href="#">On-call rotation</a>
+            </div>
+          </div>
+          <div class="kc-card ctx-card">
+            <div class="h">12 members</div>
+            <div class="kc-avatar-group" style="margin-top: 6px;">
+              <div class="kc-avatar kc-avatar-sm">AW</div>
+              <div class="kc-avatar kc-avatar-sm">FN</div>
+              <div class="kc-avatar kc-avatar-sm">DR</div>
+              <div class="kc-avatar kc-avatar-sm">LP</div>
+              <div class="kc-avatar kc-avatar-sm" style="background: var(--bg-surface); border: 1px solid var(--border-strong); color: var(--text-muted);">+8</div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- ───────────── TICKET (helpdesk) ───────────── -->
+      <section class="conv-view" id="cv-ticket">
+        <div class="thread-list">
+          <div class="thread-list-h"><div class="title">Tickets · Helpdesk</div></div>
+          <div class="thread-search"><input class="kc-input" placeholder="Cari tiket…"></div>
+          <div class="thread-row is-active unread">
+            <div class="ch-mark em"><i data-icon="help" class="kc-icon-sm"></i></div>
+            <div>
+              <div class="nm">#KC-2018 · Sync BPJS error<span class="when">2h</span></div>
+              <div class="preview">PT Maju · 4 employees missing from sync</div>
+              <div class="badge-row"><span class="kc-badge kc-badge-warn" style="font-size: 9px;">P2</span><span class="kc-badge" style="font-size: 9px;">SLA 4h</span></div>
+            </div>
+          </div>
+          <div class="thread-row">
+            <div class="ch-mark em"><i data-icon="help" class="kc-icon-sm"></i></div>
+            <div>
+              <div class="nm">#KC-2015 · Print template <span class="when">5h</span></div>
+              <div class="preview">CV Bintang · Logo off-center</div>
+              <div class="badge-row"><span class="kc-badge" style="font-size: 9px;">P3</span></div>
+            </div>
+          </div>
+          <div class="thread-row">
+            <div class="ch-mark em"><i data-icon="help" class="kc-icon-sm"></i></div>
+            <div>
+              <div class="nm">#KC-2007 · Pricelist <span class="when">Yesterday</span></div>
+              <div class="preview">Setup pricelist multi-currency</div>
+              <div class="badge-row"><span class="kc-badge kc-badge-success" style="font-size: 9px;">Resolved</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="msg-pane">
+          <div class="msg-head">
+            <div>
+              <div class="title" style="display: flex; align-items: center; gap: 8px;"><span style="color: var(--text-muted);">#KC-2018</span> Sync BPJS error — 4 employees missing</div>
+              <div class="meta">PT Maju Bersama · created by Bu Sinta · 2h ago</div>
+            </div>
+            <div class="kc-spacer"></div>
+            <span class="chip" style="background: var(--state-warn-bg); color: var(--state-warn);"><span class="kc-dot"></span> Open · P2</span>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm">Assign</button>
+            <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="check"></i>Resolve</button>
+          </div>
+          <div class="msg-body">
+            <div class="msg" style="max-width: 100%;">
+              <div class="kc-avatar kc-avatar-md" style="background: var(--accent-100); color: var(--accent-700);">SW</div>
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: baseline; gap: 6px;"><strong style="font-size: 13px;">Sinta Wahyuni</strong><span class="kc-badge" style="font-size: 9px;">customer</span><span class="kc-mono kc-muted" style="font-size: 11px;">2h ago</span></div>
+                <div class="bubble" style="margin-top: 4px; max-width: 100%;">Halo tim KantorCore, saat sync BPJS Ketenagakerjaan, 4 karyawan kami tidak masuk (NIK terlampir). Sudah cek formatnya benar. Mohon bantuan.</div>
+              </div>
+            </div>
+            <div class="msg" style="max-width: 100%;">
+              <div class="kc-avatar kc-avatar-md" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: baseline; gap: 6px;"><strong style="font-size: 13px;">Tier-1 Bot</strong><span class="kc-badge" style="font-size: 9px;">autonomous</span><span class="kc-mono kc-muted" style="font-size: 11px;">2h ago</span></div>
+                <div class="bubble" style="background: var(--fill-accent-subtle); color: var(--text-primary); border-color: transparent; margin-top: 4px; max-width: 100%;">
+                  Saya cek log sync. Penyebab: 4 NIK ini terdaftar di Dukcapil sebagai "perlu verifikasi ulang KTP" — sebab API BPJS menolak.<br><br>
+                  Solusi: minta karyawan urus pembaruan KTP di Disdukcapil, kemudian kami retry sync. Tutorial step-by-step: <a href="#">kms/dukcapil-nik-update</a>
+                </div>
+              </div>
+            </div>
+            <div class="msg" style="max-width: 100%;">
+              <div class="kc-avatar kc-avatar-md">AW</div>
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: baseline; gap: 6px;"><strong style="font-size: 13px;">Andi Wijaya</strong><span class="kc-badge" style="font-size: 9px;">agent</span><span class="kc-mono kc-muted" style="font-size: 11px;">1h ago</span></div>
+                <div class="bubble" style="margin-top: 4px; max-width: 100%;">Bu Sinta, konfirmasi jawaban bot di atas. Saya tag <strong>@Dewi</strong> untuk follow-up call jika butuh.</div>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <textarea placeholder="Reply ke pelanggan…"></textarea>
+            <div class="row">
+              <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="paperclip" class="kc-icon-sm"></i></button>
+              <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="folder" class="kc-icon-sm"></i>Macro</button>
+              <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="sparkles" class="kc-icon-sm"></i>Draft</button>
+              <div class="kc-spacer"></div>
+              <button class="kc-btn kc-btn-secondary kc-btn-sm">Internal note</button>
+              <button class="kc-btn kc-btn-primary kc-btn-sm">Reply</button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="ctx-pane">
+          <div class="kc-card ctx-card">
+            <div class="h">SLA</div>
+            <div style="font: 700 18px/1.1 var(--font-sans); margin-top: 4px;">2h 14m</div>
+            <div class="t-caption">remaining of 4h response SLA</div>
+            <div class="sla-bar"><div class="fill warn" style="width: 56%;"></div></div>
+          </div>
+          <div class="kc-card ctx-card">
+            <div class="h">Ticket</div>
+            <div class="row"><span class="k">Priority</span><span class="v"><span class="kc-badge kc-badge-warn" style="font-size: 10px;">P2</span></span></div>
+            <div class="row"><span class="k">Module</span><span class="v">IS-HR · BPJS</span></div>
+            <div class="row"><span class="k">Assignee</span><span class="v"><div class="kc-avatar kc-avatar-xs" style="display: inline-grid; vertical-align: middle;">DR</div> Dewi</span></div>
+            <div class="row"><span class="k">Customer</span><span class="v"><a href="#">PT Maju Bersama</a></span></div>
+            <div class="row"><span class="k">Created</span><span class="v kc-mono">2h ago</span></div>
+          </div>
+          <div class="kc-card ctx-card">
+            <div class="h">Cross-module actions</div>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm" style="width: 100%; margin-bottom: 4px; justify-content: flex-start;"><i data-icon="users" class="kc-icon-sm"></i>Open employee records</button>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm" style="width: 100%; margin-bottom: 4px; justify-content: flex-start;"><i data-icon="refresh" class="kc-icon-sm"></i>Retry BPJS sync</button>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm" style="width: 100%; justify-content: flex-start;"><i data-icon="file" class="kc-icon-sm"></i>Attach KMS article</button>
+          </div>
+        </aside>
+      </section>
+
+    </div>
+  </div>
+
+<script src="../icons.js"></script>
+<script>
+  const labels = { omni: 'Omnichannel', email: 'Team email', chat: 'Team chat', ticket: 'Helpdesk ticket' };
+  document.querySelectorAll('[data-conv]').forEach(b => {
+    b.addEventListener('click', () => {
+      const s = b.getAttribute('data-conv');
+      document.querySelectorAll('.conv-view').forEach(x => x.classList.toggle('is-active', x.id === 'cv-' + s));
+      document.querySelectorAll('[data-conv]').forEach(x => x.classList.toggle('is-active', x === b));
+      document.getElementById('crumb').textContent = labels[s];
+    });
+  });
+</script>
+</body></html>

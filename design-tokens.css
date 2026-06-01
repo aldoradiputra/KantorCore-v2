@@ -1,0 +1,373 @@
+/* ============================================================
+   KantorCore — Design Tokens
+   v0.2.0 · 2026-05-23
+   Drop into apps/web/app/globals.css. Authored against design-tokens.json.
+
+   Cascade contract:
+     <html data-theme="light|dark" data-accent="indigo|teal|purple|rose|amber|emerald">
+   Both attributes must be set. Defaults: light + indigo.
+
+   Per-tenant override pattern (workspace branding):
+     <html ... style="--brand-color: #FF8800; --brand-rgb: 255 136 0;">
+   The chrome and CTA tokens then resolve through --accent-* as usual; the
+   tenant CSS injects --accent-500/600 = var(--brand-color) etc. See §6.
+   ============================================================ */
+
+/* §1 — Fonts ----------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* §2 — Primitive ramps (theme-agnostic) -------------------------- */
+:root {
+  /* Neutrals */
+  --neutral-50: #FAFAFA; --neutral-100:#F4F4F5; --neutral-200:#E4E4E7;
+  --neutral-300:#D4D4D8; --neutral-400:#A1A1AA; --neutral-500:#71717A;
+  --neutral-600:#52525B; --neutral-700:#3F3F46; --neutral-800:#27272A;
+  --neutral-900:#18181B; --neutral-950:#0B0B0E;
+
+  /* Indigo */
+  --indigo-50:#EEF0FC;  --indigo-100:#DEE2F8; --indigo-200:#BFC7F1;
+  --indigo-300:#9CA6E5; --indigo-400:#7280D6; --indigo-500:#3B4FC4;
+  --indigo-600:#2F40A8; --indigo-700:#27358A; --indigo-800:#1F2A6E;
+  --indigo-900:#1A2354; --indigo-950:#101638;
+
+  /* Teal */
+  --teal-50:#EAF7F4;  --teal-100:#D2EFE9; --teal-200:#A4DDD2;
+  --teal-300:#6FC4B6; --teal-400:#3CA292; --teal-500:#0F7B6C;
+  --teal-600:#0B6457; --teal-700:#094E45; --teal-800:#073A33;
+  --teal-900:#052923; --teal-950:#021713;
+
+  /* Purple */
+  --purple-50:#F4ECFB;  --purple-100:#E7D5F4; --purple-200:#CFAAE6;
+  --purple-300:#B580D6; --purple-400:#965BC2; --purple-500:#7A3FAA;
+  --purple-600:#62318C; --purple-700:#4D2670; --purple-800:#391B54;
+  --purple-900:#26113A; --purple-950:#170A24;
+
+  /* Rose */
+  --rose-50:#FCECEF;  --rose-100:#F8D4DC; --rose-200:#F0A9B9;
+  --rose-300:#E37D95; --rose-400:#D15170; --rose-500:#B33453;
+  --rose-600:#902943; --rose-700:#6E2034; --rose-800:#511826;
+  --rose-900:#370F1B; --rose-950:#20070F;
+
+  /* Amber */
+  --amber-50:#FDF3E6;  --amber-100:#FBE2C2; --amber-200:#F6C586;
+  --amber-300:#EFA64B; --amber-400:#D88318; --amber-500:#B35A00;
+  --amber-600:#8F4800; --amber-700:#6D3700; --amber-800:#502800;
+  --amber-900:#371B00; --amber-950:#1F0F00;
+
+  /* Emerald */
+  --emerald-50:#E7F6EE;  --emerald-100:#CDEBDB; --emerald-200:#9BD7B8;
+  --emerald-300:#65BF93; --emerald-400:#36A270; --emerald-500:#0F8554;
+  --emerald-600:#0C6C44; --emerald-700:#085334; --emerald-800:#053D26;
+  --emerald-900:#032A1A; --emerald-950:#02180E;
+
+  /* Red (always semantic) */
+  --red-50:#FDECEC;  --red-100:#FAD0CE; --red-200:#F4A29F;
+  --red-300:#EB7570; --red-400:#DC4842; --red-500:#B42318;
+  --red-600:#921C13; --red-700:#6F150E; --red-800:#510F0A;
+  --red-900:#370A07; --red-950:#1F0503;
+
+  /* Yellow (always semantic) */
+  --yellow-50:#FEF7E0;  --yellow-100:#FCEAB0; --yellow-200:#F8D666;
+  --yellow-300:#EDBC2A; --yellow-400:#D29B00; --yellow-500:#A87B00;
+  --yellow-600:#866100; --yellow-700:#684A00; --yellow-800:#4D3600;
+  --yellow-900:#352500; --yellow-950:#1E1400;
+}
+
+/* §3 — Accent selection ----------------------------------------- */
+:root, :root[data-accent="indigo"] {
+  --accent-50:  var(--indigo-50);  --accent-100: var(--indigo-100);
+  --accent-200: var(--indigo-200); --accent-300: var(--indigo-300);
+  --accent-400: var(--indigo-400); --accent-500: var(--indigo-500);
+  --accent-600: var(--indigo-600); --accent-700: var(--indigo-700);
+  --accent-800: var(--indigo-800); --accent-900: var(--indigo-900);
+  --accent-950: var(--indigo-950);
+  --accent-rgb: 59 79 196;
+}
+:root[data-accent="teal"] {
+  --accent-50:  var(--teal-50);  --accent-100: var(--teal-100);
+  --accent-200: var(--teal-200); --accent-300: var(--teal-300);
+  --accent-400: var(--teal-400); --accent-500: var(--teal-500);
+  --accent-600: var(--teal-600); --accent-700: var(--teal-700);
+  --accent-800: var(--teal-800); --accent-900: var(--teal-900);
+  --accent-950: var(--teal-950);
+  --accent-rgb: 15 123 108;
+}
+:root[data-accent="purple"] {
+  --accent-50:  var(--purple-50);  --accent-100: var(--purple-100);
+  --accent-200: var(--purple-200); --accent-300: var(--purple-300);
+  --accent-400: var(--purple-400); --accent-500: var(--purple-500);
+  --accent-600: var(--purple-600); --accent-700: var(--purple-700);
+  --accent-800: var(--purple-800); --accent-900: var(--purple-900);
+  --accent-950: var(--purple-950);
+  --accent-rgb: 122 63 170;
+}
+:root[data-accent="rose"] {
+  --accent-50:  var(--rose-50);  --accent-100: var(--rose-100);
+  --accent-200: var(--rose-200); --accent-300: var(--rose-300);
+  --accent-400: var(--rose-400); --accent-500: var(--rose-500);
+  --accent-600: var(--rose-600); --accent-700: var(--rose-700);
+  --accent-800: var(--rose-800); --accent-900: var(--rose-900);
+  --accent-950: var(--rose-950);
+  --accent-rgb: 179 52 83;
+}
+:root[data-accent="amber"] {
+  --accent-50:  var(--amber-50);  --accent-100: var(--amber-100);
+  --accent-200: var(--amber-200); --accent-300: var(--amber-300);
+  --accent-400: var(--amber-400); --accent-500: var(--amber-500);
+  --accent-600: var(--amber-600); --accent-700: var(--amber-700);
+  --accent-800: var(--amber-800); --accent-900: var(--amber-900);
+  --accent-950: var(--amber-950);
+  --accent-rgb: 179 90 0;
+}
+:root[data-accent="emerald"] {
+  --accent-50:  var(--emerald-50);  --accent-100: var(--emerald-100);
+  --accent-200: var(--emerald-200); --accent-300: var(--emerald-300);
+  --accent-400: var(--emerald-400); --accent-500: var(--emerald-500);
+  --accent-600: var(--emerald-600); --accent-700: var(--emerald-700);
+  --accent-800: var(--emerald-800); --accent-900: var(--emerald-900);
+  --accent-950: var(--emerald-950);
+  --accent-rgb: 15 133 84;
+}
+
+/* §4 — Semantic tokens: light ---------------------------------- */
+:root, :root[data-theme="light"] {
+  --bg-canvas:      #FAFAFA;
+  --bg-surface:     #FFFFFF;
+  --bg-elevated:    #FFFFFF;
+  --bg-sunken:      #F4F4F5;
+  --bg-inverted:    #18181B;
+  --bg-overlay:     rgba(15, 15, 20, 0.45);
+
+  --border-subtle:  #E4E4E7;
+  --border-strong:  #D4D4D8;
+  --border-focus:   var(--accent-500);
+  --border-inverted:#3F3F46;
+
+  --text-primary:   #18181B;
+  --text-secondary: #52525B;
+  --text-muted:     #A1A1AA;
+  --text-disabled:  #D4D4D8;
+  --text-inverted:  #FAFAFA;
+  --text-accent:    var(--accent-600);
+  --text-on-accent: #FFFFFF;
+  --text-link:      var(--accent-600);
+
+  --fill-subtle:    #F4F4F5;
+  --fill-hover:     #EAEAEC;
+  --fill-active:    #E4E4E7;
+  --fill-accent:    var(--accent-500);
+  --fill-accent-subtle: var(--accent-50);
+
+  --state-success:        #0F8554;
+  --state-success-bg:     #E7F6EE;
+  --state-success-border: #9BD7B8;
+  --state-warn:           #B35A00;
+  --state-warn-bg:        #FDF3E6;
+  --state-warn-border:    #F6C586;
+  --state-danger:         #B42318;
+  --state-danger-bg:      #FDECEC;
+  --state-danger-border:  #F4A29F;
+  --state-info:           var(--accent-600);
+  --state-info-bg:        var(--accent-50);
+  --state-info-border:    var(--accent-200);
+
+  --shadow-xs: 0 1px 2px 0 rgba(15, 15, 20, 0.05);
+  --shadow-sm: 0 1px 2px 0 rgba(15, 15, 20, 0.06), 0 1px 3px 0 rgba(15, 15, 20, 0.04);
+  --shadow-md: 0 2px 4px -1px rgba(15, 15, 20, 0.06), 0 4px 12px -2px rgba(15, 15, 20, 0.06);
+  --shadow-lg: 0 4px 8px -2px rgba(15, 15, 20, 0.08), 0 12px 24px -4px rgba(15, 15, 20, 0.10);
+  --shadow-xl: 0 8px 16px -4px rgba(15, 15, 20, 0.10), 0 24px 48px -8px rgba(15, 15, 20, 0.14);
+  --shadow-focus: 0 0 0 3px rgba(var(--accent-rgb), 0.20);
+
+  color-scheme: light;
+}
+
+/* §5 — Semantic tokens: dark ----------------------------------- */
+:root[data-theme="dark"] {
+  --bg-canvas:      #0B0D12;
+  --bg-surface:     #14171E;
+  --bg-elevated:    #1A1E27;
+  --bg-sunken:      #0B0D12;
+  --bg-inverted:    #FAFAFA;
+  --bg-overlay:     rgba(0, 0, 0, 0.65);
+
+  --border-subtle:  #23272F;
+  --border-strong:  #2F3540;
+  --border-focus:   var(--accent-400);
+  --border-inverted:#D4D4D8;
+
+  --text-primary:   #F4F4F5;
+  --text-secondary: #A1A1AA;
+  --text-muted:     #71717A;
+  --text-disabled:  #3F3F46;
+  --text-inverted:  #18181B;
+  --text-accent:    var(--accent-300);
+  --text-on-accent: #FFFFFF;
+  --text-link:      var(--accent-300);
+
+  --fill-subtle:    #1A1E27;
+  --fill-hover:     #23272F;
+  --fill-active:    #2F3540;
+  --fill-accent:    var(--accent-500);
+  --fill-accent-subtle: rgba(var(--accent-rgb) / 0.16);
+
+  --state-success:        #36A270;
+  --state-success-bg:     rgba(54, 162, 112, 0.12);
+  --state-success-border: rgba(54, 162, 112, 0.32);
+  --state-warn:           #D88318;
+  --state-warn-bg:        rgba(216, 131, 24, 0.12);
+  --state-warn-border:    rgba(216, 131, 24, 0.32);
+  --state-danger:         #DC4842;
+  --state-danger-bg:      rgba(220, 72, 66, 0.12);
+  --state-danger-border:  rgba(220, 72, 66, 0.32);
+  --state-info:           var(--accent-400);
+  --state-info-bg:        rgba(var(--accent-rgb) / 0.12);
+  --state-info-border:    rgba(var(--accent-rgb) / 0.32);
+
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.40);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.50), 0 1px 3px 0 rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 2px 4px -1px rgba(0, 0, 0, 0.40), 0 4px 12px -2px rgba(0, 0, 0, 0.50);
+  --shadow-lg: 0 4px 8px -2px rgba(0, 0, 0, 0.50), 0 12px 24px -4px rgba(0, 0, 0, 0.60);
+  --shadow-xl: 0 8px 16px -4px rgba(0, 0, 0, 0.55), 0 24px 48px -8px rgba(0, 0, 0, 0.70);
+  --shadow-focus: 0 0 0 3px rgba(var(--accent-rgb), 0.35);
+
+  color-scheme: dark;
+}
+
+/* §6 — Per-tenant brand override (optional) -------------------- */
+/* Workspace admin sets brand_color → server emits:
+   <html ... data-tenant-brand="1" style="--brand-500:#FF8800; --brand-600:#E07500; --brand-rgb: 255 136 0;">
+   Then this selector remaps accent tokens to brand. */
+:root[data-tenant-brand="1"] {
+  --accent-500: var(--brand-500, var(--accent-500));
+  --accent-600: var(--brand-600, var(--accent-600));
+  --accent-rgb: var(--brand-rgb, var(--accent-rgb));
+}
+
+/* §7 — Spacing & radius ---------------------------------------- */
+:root {
+  --s-0: 0;       --s-px:1px;
+  --s-0_5:2px;    --s-1: 4px;   --s-1_5:6px;
+  --s-2: 8px;     --s-2_5:10px; --s-3: 12px;
+  --s-3_5:14px;   --s-4: 16px;  --s-5: 20px;
+  --s-6: 24px;    --s-7: 28px;  --s-8: 32px;
+  --s-10:40px;    --s-12:48px;  --s-14:56px;
+  --s-16:64px;    --s-20:80px;  --s-24:96px;
+
+  --r-none: 0;
+  --r-xs:   2px;
+  --r-sm:   4px;
+  --r-md:   6px;
+  --r-lg:   8px;
+  --r-xl:   12px;
+  --r-2xl:  16px;
+  --r-3xl:  24px;
+  --r-full: 9999px;
+}
+
+/* §8 — Typography ---------------------------------------------- */
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --fs-micro:   11px; --lh-micro:   1.45; --fw-micro:   600;
+  --fs-caption: 12px; --lh-caption: 1.45; --fw-caption: 500;
+  --fs-body-sm: 13px; --lh-body-sm: 1.55; --fw-body-sm: 400;
+  --fs-body:    14px; --lh-body:    1.55; --fw-body:    400;
+  --fs-body-lg: 16px; --lh-body-lg: 1.55; --fw-body-lg: 400;
+  --fs-h4:      16px; --lh-h4:      1.4;  --fw-h4:      600;
+  --fs-h3:      18px; --lh-h3:      1.35; --fw-h3:      600;
+  --fs-h2:      22px; --lh-h2:      1.25; --fw-h2:      700;
+  --fs-h1:      28px; --lh-h1:      1.2;  --fw-h1:      700;
+  --fs-display: 40px; --lh-display: 1.1;  --fw-display: 700;
+
+  --tk-tight:  -0.02em;
+  --tk-snug:   -0.01em;
+  --tk-normal: 0;
+  --tk-wide:   0.04em;
+
+  --feat-default: 'ss01' 1, 'cv11' 1, 'calt' 1;
+  --feat-tabular: 'tnum' 1, 'lnum' 1;
+}
+
+/* §9 — Motion -------------------------------------------------- */
+:root {
+  --d-instant: 80ms;
+  --d-fast:    120ms;
+  --d-base:    180ms;
+  --d-slow:    240ms;
+  --d-slower:  360ms;
+
+  --ease-linear: linear;
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:     cubic-bezier(0.5, 0, 0.75, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* §10 — Layout / Z ---------------------------------------------- */
+:root {
+  --topbar-h:      48px;
+  --subnav-h:      40px;
+  --rail-w:        56px;
+  --sidebar-w:     232px;
+  --sidebar-w-min: 200px;
+  --sidebar-w-max: 320px;
+  --panel-w:       440px;
+  --panel-w-wide:  560px;
+  --content-max:   1440px;
+  --gutter:        24px;
+
+  --z-base:     0;
+  --z-raised:   10;
+  --z-sticky:   20;
+  --z-rail:     30;
+  --z-dropdown: 40;
+  --z-overlay:  50;
+  --z-modal:    60;
+  --z-popover:  70;
+  --z-toast:    80;
+  --z-command:  90;
+  --z-tooltip:  100;
+}
+
+/* §11 — Type utility classes ----------------------------------- */
+.t-display { font: var(--fw-display) var(--fs-display)/var(--lh-display) var(--font-sans); letter-spacing: var(--tk-tight); color: var(--text-primary); }
+.t-h1, h1  { font: var(--fw-h1) var(--fs-h1)/var(--lh-h1) var(--font-sans); letter-spacing: var(--tk-tight); color: var(--text-primary); }
+.t-h2, h2  { font: var(--fw-h2) var(--fs-h2)/var(--lh-h2) var(--font-sans); letter-spacing: var(--tk-tight); color: var(--text-primary); }
+.t-h3, h3  { font: var(--fw-h3) var(--fs-h3)/var(--lh-h3) var(--font-sans); letter-spacing: var(--tk-snug); color: var(--text-primary); }
+.t-h4, h4  { font: var(--fw-h4) var(--fs-h4)/var(--lh-h4) var(--font-sans); letter-spacing: var(--tk-snug); color: var(--text-primary); }
+.t-body-lg { font: var(--fw-body-lg) var(--fs-body-lg)/var(--lh-body-lg) var(--font-sans); color: var(--text-primary); }
+.t-body, p { font: var(--fw-body) var(--fs-body)/var(--lh-body) var(--font-sans); color: var(--text-secondary); }
+.t-body-sm { font: var(--fw-body-sm) var(--fs-body-sm)/var(--lh-body-sm) var(--font-sans); color: var(--text-secondary); }
+.t-caption { font: var(--fw-caption) var(--fs-caption)/var(--lh-caption) var(--font-sans); color: var(--text-muted); }
+.t-micro   { font: var(--fw-micro) var(--fs-micro)/var(--lh-micro) var(--font-sans); letter-spacing: var(--tk-wide); text-transform: uppercase; color: var(--text-muted); }
+.t-mono, code, kbd, samp { font: 500 13px/1.55 var(--font-mono); font-feature-settings: var(--feat-tabular); }
+.t-num     { font-feature-settings: var(--feat-tabular); font-variant-numeric: tabular-nums lining-nums; }
+
+/* §12 — Base reset --------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font: var(--fw-body) var(--fs-body)/var(--lh-body) var(--font-sans);
+  font-feature-settings: var(--feat-default);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+a { color: var(--text-link); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+::selection { background: rgba(var(--accent-rgb), 0.22); color: inherit; }
+
+/* Scrollbar — subtle, theme-aware */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: var(--border-strong); background-clip: padding-box; }

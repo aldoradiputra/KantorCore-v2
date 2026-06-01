@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<title>KantorCore — Mobile / PWA</title>
+<link rel="stylesheet" href="../design-tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>
+  body { margin: 0; min-height: 100vh; background: var(--bg-canvas); padding: 32px 24px; display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; }
+
+  /* Phone frame */
+  .phone {
+    width: 360px;
+    height: 720px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 28px;
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .phone-label {
+    text-align: center;
+    font: 600 12px/1 var(--font-mono);
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .phone-col { display: flex; flex-direction: column; align-items: center; }
+
+  .statusbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 18px;
+    font: 600 12px/1 var(--font-sans);
+    color: var(--text-primary);
+  }
+  .statusbar .right { display: flex; gap: 4px; align-items: center; }
+
+  .m-top {
+    padding: 8px 16px 12px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .m-top .title { font: 700 18px/1 var(--font-sans); letter-spacing: -0.02em; color: var(--text-primary); flex: 1; }
+  .m-top .greet { font: 400 12px/1 var(--font-sans); color: var(--text-muted); margin-top: 4px; }
+  .m-top button {
+    width: 32px; height: 32px;
+    border: 0; background: transparent;
+    border-radius: var(--r-md);
+    color: var(--text-secondary);
+    display: grid; place-items: center;
+  }
+
+  .m-content { flex: 1; overflow: auto; padding: 12px 16px 80px; }
+  .m-content::-webkit-scrollbar { display: none; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    height: 64px;
+    padding: 0 4px;
+  }
+  .bottom-nav button {
+    border: 0; background: transparent;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font: 500 10px/1 var(--font-sans);
+    padding: 0;
+  }
+  .bottom-nav button .kc-icon { width: 20px; height: 20px; }
+  .bottom-nav button.is-active { color: var(--text-accent); }
+  .bottom-nav .fab {
+    background: var(--accent-600); color: white;
+    border-radius: 50%;
+    width: 44px; height: 44px;
+    margin: 0 auto;
+    align-self: center;
+    display: grid; place-items: center;
+  }
+  .bottom-nav .fab-wrap { display: flex; align-items: center; justify-content: center; }
+
+  /* card list */
+  .m-card-list { display: flex; flex-direction: column; gap: 10px; }
+  .m-stat {
+    padding: 12px 14px;
+  }
+  .m-stat .lbl { font: 500 11px/1 var(--font-sans); color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
+  .m-stat .val { font: 700 22px/1.1 var(--font-sans); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .m-stat .dlt { font: 500 11px/1 var(--font-sans); color: var(--state-success); margin-top: 4px; }
+
+  .m-action {
+    display: grid; grid-template-columns: 32px 1fr auto;
+    gap: 10px;
+    padding: 12px 14px;
+    align-items: center;
+  }
+  .m-action .ic {
+    width: 32px; height: 32px;
+    border-radius: var(--r-md);
+    background: var(--fill-accent-subtle);
+    color: var(--text-accent);
+    display: grid; place-items: center;
+  }
+  .m-action .ic.warn { background: var(--state-warn-bg); color: var(--state-warn); }
+  .m-action .ic.success { background: var(--state-success-bg); color: var(--state-success); }
+  .m-action .nm { font: 600 14px/1.3 var(--font-sans); color: var(--text-primary); }
+  .m-action .ds { font: 400 12px/1.4 var(--font-sans); color: var(--text-muted); margin-top: 2px; }
+
+  /* List rows */
+  .m-list-row {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 10px; align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .m-list-row:last-child { border-bottom: 0; }
+
+  /* Section header in list */
+  .m-section-h { font: 600 10px/1 var(--font-sans); color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; padding: 14px 14px 8px; }
+
+  /* Record form */
+  .m-field {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .m-field .lbl { font: 400 13px/1 var(--font-sans); color: var(--text-secondary); }
+  .m-field .val { font: 500 13px/1 var(--font-sans); color: var(--text-primary); font-family: var(--font-mono); }
+
+  /* Approval card */
+  .m-approval {
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .m-approval .head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .m-approval .ttl { font: 600 14px/1.3 var(--font-sans); color: var(--text-primary); }
+  .m-approval .meta { font: 400 11px/1.4 var(--font-mono); color: var(--text-muted); }
+  .m-approval .amt { font: 700 18px/1.1 var(--font-mono); color: var(--text-primary); margin: 10px 0; }
+  .m-approval .actions { display: flex; gap: 6px; }
+  .m-approval .actions button { flex: 1; }
+
+  /* Offline */
+  .offline-banner {
+    background: var(--state-warn-bg);
+    border: 1px solid var(--state-warn-border);
+    border-radius: var(--r-md);
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    display: flex; gap: 8px; align-items: center;
+    font: 500 12px/1.4 var(--font-sans);
+    color: var(--state-warn);
+  }
+
+  .stage-badge {
+    display: inline-flex; align-items: center;
+    font: 500 10px/1 var(--font-sans);
+    padding: 2px 6px;
+    border-radius: var(--r-full);
+  }
+
+  /* Chatter on mobile */
+  .m-chat-msg { padding: 10px 14px; display: grid; grid-template-columns: 28px 1fr; gap: 8px; border-bottom: 1px solid var(--border-subtle); }
+  .m-chat-msg:last-child { border-bottom: 0; }
+  .m-chat-msg .who { font: 600 12px/1 var(--font-sans); color: var(--text-primary); margin-bottom: 2px; }
+  .m-chat-msg .when { font: 500 10px/1 var(--font-mono); color: var(--text-muted); margin-left: 6px; }
+  .m-chat-msg .body { font: 400 13px/1.5 var(--font-sans); color: var(--text-primary); }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div class="phone-col">
+<div class="phone-label">Home (logged in)</div>
+<div class="phone">
+  <div class="statusbar">9:41<div class="right"><i data-icon="dot" class="kc-icon-sm"></i><i data-icon="dot" class="kc-icon-sm"></i><i data-icon="dot" class="kc-icon-sm"></i></div></div>
+  <div class="m-top">
+    <div style="flex: 1;">
+      <div class="title">Beranda</div>
+      <div class="greet">Selamat pagi, Andi</div>
+    </div>
+    <button><i data-icon="bell"></i></button>
+    <div class="kc-avatar kc-avatar-md">AW</div>
+  </div>
+  <div class="m-content">
+    <div class="m-card-list">
+      <div class="kc-card m-stat"><div class="lbl">Posisi kas</div><div class="val">Rp 8.42 mi</div><div class="dlt">▲ Rp 240 jt this week</div></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="kc-card m-stat"><div class="lbl">Overdue</div><div class="val" style="color: var(--state-danger); font-size: 17px;">Rp 70.2 jt</div><div class="dlt" style="color: var(--state-danger);">23 invoices</div></div>
+        <div class="kc-card m-stat"><div class="lbl">Pipeline</div><div class="val" style="font-size: 17px;">Rp 1.84 mi</div><div class="dlt">7 negotiating</div></div>
+      </div>
+    </div>
+
+    <div class="m-section-h">Need your attention</div>
+    <div class="kc-card" style="overflow: hidden;">
+      <div class="m-action"><div class="ic warn"><i data-icon="check"></i></div><div><div class="nm">12 approvals waiting</div><div class="ds">PO, expenses, leave requests</div></div><i data-icon="chevron-right" class="kc-icon-sm" style="color: var(--text-muted);"></i></div>
+      <div class="m-action" style="border-top: 1px solid var(--border-subtle);"><div class="ic"><i data-icon="bot"></i></div><div><div class="nm">3 agent runs</div><div class="ds">Lead Triager has 4 drafts ready</div></div><i data-icon="chevron-right" class="kc-icon-sm" style="color: var(--text-muted);"></i></div>
+      <div class="m-action" style="border-top: 1px solid var(--border-subtle);"><div class="ic success"><i data-icon="message"></i></div><div><div class="nm">2 mentions</div><div class="ds">Dewi tagged you in PO-0091</div></div><i data-icon="chevron-right" class="kc-icon-sm" style="color: var(--text-muted);"></i></div>
+    </div>
+
+    <div class="m-section-h">Today</div>
+    <div class="kc-card" style="overflow: hidden;">
+      <div class="m-action"><div class="ic"><i data-icon="calendar" class="kc-icon-sm"></i></div><div><div class="nm">Demo · PT Anugerah</div><div class="ds">14:30 · Closing call</div></div></div>
+      <div class="m-action" style="border-top: 1px solid var(--border-subtle);"><div class="ic"><i data-icon="calendar" class="kc-icon-sm"></i></div><div><div class="nm">Q2 forecast review</div><div class="ds">11:00 · with Lestari</div></div></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="is-active"><i data-icon="home"></i>Home</button>
+    <button><i data-icon="invoice"></i>Records</button>
+    <div class="fab-wrap"><div class="fab"><i data-icon="plus"></i></div></div>
+    <button><i data-icon="check"></i>Approve</button>
+    <button><i data-icon="more"></i>More</button>
+  </div>
+</div>
+</div>
+
+<!-- RECORD LIST -->
+<div class="phone-col">
+<div class="phone-label">Record list · Invoices</div>
+<div class="phone">
+  <div class="statusbar">9:41<div class="right"><i data-icon="dot" class="kc-icon-sm"></i><i data-icon="dot" class="kc-icon-sm"></i><i data-icon="dot" class="kc-icon-sm"></i></div></div>
+  <div class="m-top">
+    <button><i data-icon="chevron-left"></i></button>
+    <div style="flex: 1;"><div class="title">Invoices</div><div class="greet">186 active</div></div>
+    <button><i data-icon="search"></i></button>
+    <button><i data-icon="filter"></i></button>
+  </div>
+  <div style="padding: 8px 14px; display: flex; gap: 6px; overflow: auto; border-bottom: 1px solid var(--border-subtle);">
+    <button class="kc-chip kc-chip-active">All</button>
+    <button class="kc-chip">Overdue</button>
+    <button class="kc-chip">Sent</button>
+    <button class="kc-chip">Draft</button>
+  </div>
+  <div class="m-content" style="padding: 0;">
+    <div class="m-list-row">
+      <div><div style="font: 600 14px/1.3 var(--font-sans);">PT Acme Indonesia</div><div style="font: 400 12px/1.4 var(--font-mono); color: var(--text-muted);">INV-2026-0179 · due 12 May</div><span class="stage-badge" style="background: var(--state-danger-bg); color: var(--state-danger); margin-top: 6px;">Overdue 11d</span></div>
+      <div style="text-align: right;"><div style="font: 700 14px/1 var(--font-mono);">Rp 145jt</div></div>
+    </div>
+    <div class="m-list-row">
+      <div><div style="font: 600 14px/1.3 var(--font-sans);">CV Bintang Timur</div><div style="font: 400 12px/1.4 var(--font-mono); color: var(--text-muted);">INV-2026-0173 · due 02 May</div><span class="stage-badge" style="background: var(--state-danger-bg); color: var(--state-danger); margin-top: 6px;">Overdue 21d</span></div>
+      <div style="text-align: right;"><div style="font: 700 14px/1 var(--font-mono);">Rp 18jt</div></div>
+    </div>
+    <div class="m-list-row">
+      <div><div style="font: 600 14px/1.3 var(--font-sans);">PT Maju Bersama</div><div style="font: 400 12px/1.4 var(--font-mono); color: var(--text-muted);">INV-2026-0184 · due 28 May</div><span class="stage-badge" style="background: var(--state-info-bg); color: var(--state-info); margin-top: 6px;">Sent</span></div>
+      <div style="text-align: right;"><div style="font: 700 14px/1 var(--font-mono);">Rp 24jt</div></div>
+    </div>
+    <div class="m-list-row">
+      <div><div style="font: 600 14px/1.3 var(--font-sans);">PT Sumber Rejeki</div><div style="font: 400 12px/1.4 var(--font-mono); color: var(--text-muted);">INV-2026-0168 · due 29 Apr</div><span class="stage-badge" style="background: var(--state-danger-bg); color: var(--state-danger); margin-top: 6px;">Overdue 24d</span></div>
+      <div style="text-align: right;"><div style="font: 700 14px/1 var(--font-mono);">Rp 8.4jt</div></div>
+    </div>
+    <div class="m-list-row">
+      <div><div style="font: 600 14px/1.3 var(--font-sans);">UD Aneka Karya</div><div style="font: 400 12px/1.4 var(--font-mono); color: var(--text-muted);">INV-2026-0162 · paid</div><span class="stage-badge" style="background: var(--state-success-bg); color: var(--state-success); margin-top: 6px;">Paid</span></div>
+      <div style="text-align: right;"><div style="font: 700 14px/1 var(--font-mono); color: var(--text-muted);">Rp 12jt</div></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button><i data-icon="home"></i>Home</button>
+    <button class="is-active"><i data-icon="invoice"></i>Records</button>
+    <div class="fab-wrap"><div class="fab"><i data-icon="plus"></i></div></div>
+    <button><i data-icon="check"></i>Approve</button>
+    <button><i data-icon="more"></i>More</button>
+  </div>
+</div>
+</div>
+
+<!-- RECORD FORM + CHATTER -->
+<div class="phone-col">
+<div class="phone-label">Record · INV-2026-0179</div>
+<div class="phone">
+  <div class="statusbar">9:41<div class="right"><i data-icon="dot" class="kc-icon-sm"></i><i data-icon="dot" class="kc-icon-sm"></i><i data-icon="dot" class="kc-icon-sm"></i></div></div>
+  <div class="m-top">
+    <button><i data-icon="chevron-left"></i></button>
+    <div style="flex: 1;"><div class="title" style="font-size: 16px;">PT Acme Indonesia</div><div class="greet kc-mono">INV-2026-0179</div></div>
+    <button><i data-icon="more"></i></button>
+  </div>
+  <div style="padding: 8px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-subtle); background: var(--state-danger-bg);">
+    <i data-icon="alert" style="color: var(--state-danger);" class="kc-icon-sm"></i>
+    <span style="font: 500 12px/1.4 var(--font-sans); color: var(--state-danger);">Overdue 11 days · Rp 145.000.000</span>
+  </div>
+  <div style="display: flex; padding: 10px 14px; gap: 6px; background: var(--bg-sunken); border-bottom: 1px solid var(--border-subtle); overflow: auto;">
+    <button class="kc-btn kc-btn-secondary kc-btn-sm" style="flex-shrink: 0;"><i data-icon="send" class="kc-icon-sm"></i>Reminder</button>
+    <button class="kc-btn kc-btn-secondary kc-btn-sm" style="flex-shrink: 0;"><i data-icon="check" class="kc-icon-sm"></i>Payment</button>
+    <button class="kc-btn kc-btn-secondary kc-btn-sm" style="flex-shrink: 0;"><i data-icon="download" class="kc-icon-sm"></i>PDF</button>
+  </div>
+  <div class="m-content" style="padding: 0;">
+    <div class="m-field"><span class="lbl">Total</span><span class="val">Rp 145.000.000</span></div>
+    <div class="m-field"><span class="lbl">Issued</span><span class="val">12 Apr 2026</span></div>
+    <div class="m-field"><span class="lbl">Due</span><span class="val" style="color: var(--state-danger);">12 May 2026</span></div>
+    <div class="m-field"><span class="lbl">Term</span><span class="val">Net 30</span></div>
+    <div class="m-field"><span class="lbl">Owner</span><span class="val">Andi Wijaya</span></div>
+
+    <div class="m-section-h">AI summary</div>
+    <div class="kc-ai-field" style="margin: 0 14px 12px;">
+      <div class="kc-ai-field-head"><i data-icon="sparkles" class="kc-icon-sm"></i>Customer health</div>
+      <div class="kc-ai-field-value" style="font-size: 12px;">Tier-1 customer · 26/28 invoices paid on time. This delay matches their normal late pattern. Suggest gentle escalation.</div>
+    </div>
+
+    <div class="m-section-h">Activity · 5</div>
+    <div class="m-chat-msg"><div class="kc-avatar kc-avatar-sm" style="background: var(--accent-100); color: var(--accent-700);">DR</div><div><div><span class="who">Dewi</span><span class="when">2m ago</span></div><div class="body">Customer requests Net 45 extension.</div></div></div>
+    <div class="m-chat-msg"><div class="kc-avatar kc-avatar-sm" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div><div><div><span class="who">AR Collector</span><span class="when">1h ago</span></div><div class="body">Sent reminder email · delivered &amp; opened.</div></div></div>
+    <div class="m-chat-msg"><div class="kc-avatar kc-avatar-sm" style="background: var(--neutral-200);"><i data-icon="settings" class="kc-icon-sm"></i></div><div><div><span class="who">Sistem</span><span class="when">12 May</span></div><div class="body">Status → Overdue</div></div></div>
+  </div>
+</div>
+</div>
+
+<!-- APPROVAL QUEUE -->
+<div class="phone-col">
+<div class="phone-label">Approval queue</div>
+<div class="phone">
+  <div class="statusbar">9:41<div class="right"><i data-icon="dot" class="kc-icon-sm"></i><i data-icon="dot" class="kc-icon-sm"></i><i data-icon="dot" class="kc-icon-sm"></i></div></div>
+  <div class="m-top">
+    <button><i data-icon="chevron-left"></i></button>
+    <div style="flex: 1;"><div class="title">Approve</div><div class="greet">12 waiting</div></div>
+  </div>
+  <div class="m-content">
+
+    <div class="kc-card m-approval">
+      <div class="head"><div class="kc-avatar kc-avatar-md" style="background: var(--accent-100); color: var(--accent-700);">DR</div><div><div class="ttl">Dewi Rahmawati</div><div class="meta">PO-2026-0091 · Engineering · 2h ago</div></div></div>
+      <div style="font: 400 13px/1.5 var(--font-sans); color: var(--text-secondary);">Pengadaan komputer &amp; periferal kantor — 2 MacBook Air, 4 monitor Dell, etc.</div>
+      <div class="amt">Rp 12.450.000</div>
+      <div class="actions">
+        <button class="kc-btn kc-btn-secondary"><i data-icon="x"></i>Reject</button>
+        <button class="kc-btn kc-btn-primary"><i data-icon="check"></i>Approve</button>
+      </div>
+    </div>
+
+    <div class="kc-card m-approval">
+      <div class="head"><div class="kc-avatar kc-avatar-md">SS</div><div><div class="ttl">Surya Saputra</div><div class="meta">EXP-2026-0418 · Surabaya trip · 5h ago</div></div></div>
+      <div style="font: 400 13px/1.5 var(--font-sans); color: var(--text-secondary);">Reimburse perjalanan dinas — 4 receipts attached.</div>
+      <div class="amt">Rp 3.890.000</div>
+      <div class="actions">
+        <button class="kc-btn kc-btn-secondary"><i data-icon="x"></i>Reject</button>
+        <button class="kc-btn kc-btn-primary"><i data-icon="check"></i>Approve</button>
+      </div>
+    </div>
+
+    <div class="kc-card m-approval">
+      <div class="head"><div class="kc-avatar kc-avatar-md">PS</div><div><div class="ttl">Putri Setiawan</div><div class="meta">Annual leave · 13–17 May · 3h ago</div></div></div>
+      <div style="font: 400 13px/1.5 var(--font-sans); color: var(--text-secondary);">Cuti tahunan · 5 working days · sisa 8 hari setelah ini.</div>
+      <div class="actions">
+        <button class="kc-btn kc-btn-secondary"><i data-icon="x"></i>Reject</button>
+        <button class="kc-btn kc-btn-primary"><i data-icon="check"></i>Approve</button>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button><i data-icon="home"></i>Home</button>
+    <button><i data-icon="invoice"></i>Records</button>
+    <div class="fab-wrap"><div class="fab"><i data-icon="plus"></i></div></div>
+    <button class="is-active"><i data-icon="check"></i>Approve</button>
+    <button><i data-icon="more"></i>More</button>
+  </div>
+</div>
+</div>
+
+<!-- OFFLINE -->
+<div class="phone-col">
+<div class="phone-label">Offline state</div>
+<div class="phone">
+  <div class="statusbar">9:41<div class="right"><i data-icon="wifi-off" class="kc-icon-sm" style="color: var(--state-warn);"></i></div></div>
+  <div class="m-top">
+    <div style="flex: 1;"><div class="title">Beranda</div><div class="greet">Selamat pagi, Andi</div></div>
+    <div class="kc-avatar kc-avatar-md">AW</div>
+  </div>
+  <div class="m-content">
+
+    <div class="offline-banner">
+      <i data-icon="wifi-off" class="kc-icon-sm"></i>
+      <div><strong>You're offline</strong> · cached as of 09:38</div>
+    </div>
+
+    <div class="m-card-list">
+      <div class="kc-card m-stat" style="opacity: 0.8;"><div class="lbl">Posisi kas <span class="kc-mono kc-muted">· cached</span></div><div class="val">Rp 8.42 mi</div></div>
+    </div>
+
+    <div class="m-section-h">Pending sync · 3</div>
+    <div class="kc-card" style="overflow: hidden;">
+      <div class="m-action"><div class="ic" style="background: var(--state-warn-bg); color: var(--state-warn);"><i data-icon="upload"></i></div><div><div class="nm">Approve PO-2026-0091</div><div class="ds">Will sync when online</div></div><i data-icon="clock" class="kc-icon-sm" style="color: var(--text-muted);"></i></div>
+      <div class="m-action" style="border-top: 1px solid var(--border-subtle);"><div class="ic" style="background: var(--state-warn-bg); color: var(--state-warn);"><i data-icon="upload"></i></div><div><div class="nm">Note on INV-2026-0179</div><div class="ds">"Customer requests Net 45"</div></div><i data-icon="clock" class="kc-icon-sm" style="color: var(--text-muted);"></i></div>
+      <div class="m-action" style="border-top: 1px solid var(--border-subtle);"><div class="ic" style="background: var(--state-warn-bg); color: var(--state-warn);"><i data-icon="upload"></i></div><div><div class="nm">Expense submission</div><div class="ds">Receipt photo + Rp 84.500</div></div><i data-icon="clock" class="kc-icon-sm" style="color: var(--text-muted);"></i></div>
+    </div>
+
+    <div class="m-section-h">Available offline</div>
+    <div class="kc-card" style="overflow: hidden;">
+      <div class="m-action"><div class="ic"><i data-icon="invoice"></i></div><div><div class="nm">Invoices (last 30 days)</div><div class="ds">186 records cached</div></div></div>
+      <div class="m-action" style="border-top: 1px solid var(--border-subtle);"><div class="ic"><i data-icon="users"></i></div><div><div class="nm">Employees</div><div class="ds">218 records cached</div></div></div>
+      <div class="m-action" style="border-top: 1px solid var(--border-subtle);"><div class="ic"><i data-icon="receipt"></i></div><div><div class="nm">Capture expense</div><div class="ds">Works offline · syncs later</div></div></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="is-active"><i data-icon="home"></i>Home</button>
+    <button><i data-icon="invoice"></i>Records</button>
+    <div class="fab-wrap"><div class="fab"><i data-icon="plus"></i></div></div>
+    <button><i data-icon="check"></i>Approve</button>
+    <button><i data-icon="more"></i>More</button>
+  </div>
+</div>
+</div>
+
+<script src="../icons.js"></script>
+</body></html>

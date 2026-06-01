@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<title>KantorCore — Admin</title>
+<link rel="stylesheet" href="../design-tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="_shell.css">
+<style>
+  body { margin: 0; overflow: hidden; }
+  .admin-section { display: none; padding: 16px var(--gutter) 32px; }
+  .admin-section.is-active { display: block; }
+
+  .form-block { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--r-lg); padding: 20px 24px; margin-bottom: 16px; }
+  .form-block h3 { font: 600 14px/1.4 var(--font-sans); color: var(--text-primary); margin-bottom: 4px; }
+  .form-block .sub { font: 400 12px/1.4 var(--font-sans); color: var(--text-muted); margin-bottom: 16px; }
+  .form-block .row { display: grid; grid-template-columns: 240px 1fr; gap: 16px 24px; padding: 12px 0; border-top: 1px solid var(--border-subtle); align-items: start; }
+  .form-block .row:first-of-type { border-top: 0; padding-top: 0; }
+  .form-block .row .label .nm { font: 600 13px/1.4 var(--font-sans); color: var(--text-primary); }
+  .form-block .row .label .help { font: 400 12px/1.5 var(--font-sans); color: var(--text-muted); margin-top: 2px; }
+
+  .role-pill { font: 600 10px/1 var(--font-sans); padding: 2px 7px; border-radius: var(--r-full); }
+  .role-admin { background: var(--state-warn-bg); color: var(--state-warn); }
+  .role-member { background: var(--fill-accent-subtle); color: var(--text-accent); }
+  .role-guest { background: var(--fill-subtle); color: var(--text-muted); }
+  .role-auto { background: var(--state-success-bg); color: var(--state-success); }
+
+  .brand-preview {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--bg-sunken);
+  }
+  .brand-preview .top {
+    height: 48px; display: flex; align-items: center; padding: 0 14px;
+    background: var(--bg-inverted); color: var(--text-inverted);
+    gap: 12px;
+  }
+  .brand-preview .top .ws { display: flex; align-items: center; gap: 8px; font: 600 13px/1 var(--font-sans); }
+  .brand-preview .top .ws .mark { width: 22px; height: 22px; background: var(--brand-color, var(--accent-600)); border-radius: 4px; display: grid; place-items: center; color: white; font: 700 11px/1 var(--font-sans); }
+  .brand-preview .body { padding: 16px; background: var(--bg-canvas); }
+  .brand-preview .body button { background: var(--brand-color, var(--accent-600)); color: #fff; border: 0; padding: 6px 12px; border-radius: var(--r-md); font: 500 12px/1 var(--font-sans); cursor: pointer; }
+
+  .integ-card {
+    display: grid; grid-template-columns: 44px 1fr auto;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    background: var(--bg-surface);
+    align-items: center;
+  }
+  .integ-card .logo { width: 44px; height: 44px; border-radius: var(--r-md); background: var(--bg-sunken); display: grid; place-items: center; font: 700 14px/1 var(--font-sans); color: var(--text-primary); }
+  .integ-card .nm { font: 600 13px/1.4 var(--font-sans); color: var(--text-primary); }
+  .integ-card .ds { font: 400 12px/1.4 var(--font-sans); color: var(--text-muted); margin-top: 2px; }
+
+  /* ModelMeta studio */
+  .meta-grid { display: grid; grid-template-columns: 280px 1fr; gap: 16px; height: 600px; }
+  .meta-list {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    overflow: auto;
+  }
+  .meta-entity {
+    padding: 8px 12px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    font: 500 13px/1.3 var(--font-sans);
+    color: var(--text-secondary);
+  }
+  .meta-entity:hover { background: var(--fill-subtle); color: var(--text-primary); }
+  .meta-entity.is-active { background: var(--fill-accent-subtle); color: var(--text-accent); font-weight: 600; }
+  .meta-entity .nm { flex: 1; font-family: var(--font-mono); font-size: 12px; }
+  .meta-entity .count { font: 500 10px/1 var(--font-mono); color: var(--text-muted); padding: 1px 5px; background: var(--bg-sunken); border-radius: var(--r-xs); }
+
+  .meta-detail { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--r-md); overflow: auto; }
+  .meta-detail-head { padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); }
+  .meta-detail-head .nm { font: 600 18px/1.2 var(--font-mono); color: var(--text-primary); }
+  .meta-detail-head .meta { font: 400 12px/1.4 var(--font-sans); color: var(--text-muted); margin-top: 4px; }
+  .meta-fields { padding: 4px 0; }
+  .meta-field { display: grid; grid-template-columns: 200px 120px 1fr auto; gap: 12px; padding: 8px 20px; border-bottom: 1px solid var(--border-subtle); align-items: center; }
+  .meta-field:last-child { border-bottom: 0; }
+  .meta-field .fnm { font: 500 12px/1 var(--font-mono); color: var(--text-primary); }
+  .meta-field .ftype { font: 500 11px/1 var(--font-mono); color: var(--text-muted); padding: 2px 6px; background: var(--bg-sunken); border-radius: var(--r-xs); justify-self: start; }
+  .meta-field .fkind {
+    font: 600 9px/1 var(--font-sans); padding: 2px 5px; border-radius: var(--r-xs);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .meta-field .fkind.scalar { background: var(--bg-sunken); color: var(--text-muted); }
+  .meta-field .fkind.computed { background: var(--state-info-bg); color: var(--state-info); }
+  .meta-field .fkind.ai { background: var(--fill-accent-subtle); color: var(--text-accent); }
+  .meta-field .fkind.ref { background: var(--state-success-bg); color: var(--state-success); }
+  .meta-field .fdesc { font: 400 12px/1.4 var(--font-sans); color: var(--text-muted); }
+
+  .ip-list { display: flex; flex-direction: column; gap: 6px; }
+  .ip-list .row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-sunken); border-radius: var(--r-sm); font: 500 12px/1 var(--font-mono); }
+  .ip-list .row .x { color: var(--text-muted); cursor: pointer; }
+</style>
+</head>
+<body class="kc-shell">
+
+  <!-- Rail -->
+  <aside class="kc-rail">
+    <div class="kc-rail-logo"><i data-icon="grid"></i></div>
+    <button class="kc-rail-item" title="Home"><i data-icon="home"></i></button>
+    <button class="kc-rail-item" title="HR"><i data-icon="users"></i></button>
+    <button class="kc-rail-item" title="Finance"><i data-icon="wallet"></i></button>
+    <button class="kc-rail-item" title="Inventory"><i data-icon="package"></i></button>
+    <button class="kc-rail-item" title="Sales"><i data-icon="trend"></i></button>
+    <button class="kc-rail-item" title="CRM"><i data-icon="briefcase"></i></button>
+    <div class="kc-spacer"></div>
+    <button class="kc-rail-item is-active" title="Settings"><i data-icon="settings"></i></button>
+  </aside>
+
+  <!-- Sidebar -->
+  <aside class="kc-side">
+    <div class="kc-side-top">
+      <div class="kc-side-title">Admin</div>
+      <span class="kc-side-code">IS-PLAT</span>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Workspace</div>
+      <a class="kc-side-item is-active" data-section="users"><i data-icon="users" class="kc-side-kind"></i><span>Users &amp; groups</span></a>
+      <a class="kc-side-item" data-section="security"><i data-icon="shield" class="kc-side-kind"></i><span>Security</span></a>
+      <a class="kc-side-item" data-section="brand"><i data-icon="star" class="kc-side-kind"></i><span>Branding</span></a>
+      <a class="kc-side-item" data-section="integ"><i data-icon="link" class="kc-side-kind"></i><span>Integrations</span></a>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Platform</div>
+      <a class="kc-side-item" data-section="meta"><i data-icon="cpu" class="kc-side-kind"></i><span>ModelMeta studio</span></a>
+      <a class="kc-side-item"><i data-icon="sliders" class="kc-side-kind"></i><span>Custom fields</span></a>
+      <a class="kc-side-item"><i data-icon="history" class="kc-side-kind"></i><span>Audit log</span></a>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Billing</div>
+      <a class="kc-side-item"><i data-icon="wallet" class="kc-side-kind"></i><span>Plan &amp; usage</span></a>
+      <a class="kc-side-item"><i data-icon="invoice" class="kc-side-kind"></i><span>Invoices</span></a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="kc-shell-main">
+    <header class="kc-topbar">
+      <div class="kc-topbar-left">
+        <button class="kc-tb-btn kc-tb-workspace">
+          <span class="kc-tb-workspace-mark">A</span>
+          <div class="kc-tb-workspace-name"><span>PT Acme Indonesia</span><span class="kc-tb-workspace-env">Production</span></div>
+          <i data-icon="chevron-down"></i>
+        </button>
+        <div class="kc-crumbs">
+          <a href="#">Settings</a><span class="kc-crumb-sep">/</span>
+          <span class="kc-crumb-cur" id="crumb">Users &amp; groups</span>
+        </div>
+      </div>
+      <button class="kc-cmdk"><i data-icon="search"></i><span>Cari atau jalankan…</span><span class="kc-kbd">⌘K</span></button>
+      <div class="kc-topbar-right">
+        <button class="kc-tb-btn"><i data-icon="bot"></i><span class="kc-tb-dot kc-tb-dot-accent">3</span></button>
+        <button class="kc-tb-btn"><i data-icon="bell"></i><span class="kc-tb-dot">8</span></button>
+        <button class="kc-tb-btn kc-tb-user"><div class="kc-avatar kc-avatar-sm">AW</div></button>
+      </div>
+    </header>
+
+    <div class="kc-shell-content">
+
+      <!-- USERS -->
+      <section class="admin-section is-active" id="s-users">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px;">
+          <div><div class="t-h2">Users &amp; groups</div><p class="t-body-sm">218 members &middot; 4 roles &middot; <strong>3 invitations pending</strong></p></div>
+          <div style="display: flex; gap: 6px;">
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="upload"></i>Import CSV</button>
+            <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="plus"></i>Invite people</button>
+          </div>
+        </div>
+
+        <div class="kc-card" style="overflow: hidden;">
+          <div class="kc-filter-bar">
+            <button class="kc-chip kc-chip-active">All <span class="kc-x">221</span></button>
+            <button class="kc-chip">Active <span class="kc-x">218</span></button>
+            <button class="kc-chip">Invited <span class="kc-x">3</span></button>
+            <button class="kc-chip">Autonomous <span class="kc-x">6</span></button>
+            <div class="kc-spacer"></div>
+            <input class="kc-input" placeholder="Search members…" style="width: 240px;">
+          </div>
+          <table class="kc-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Groups</th><th>Last active</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div style="display: flex; align-items: center; gap: 8px;"><div class="kc-avatar kc-avatar-sm">AW</div>Andi Wijaya</div></td><td class="kc-mono">andi@acme.id</td><td><span class="role-pill role-admin">Admin</span></td><td>Finance, Mgmt</td><td class="kc-mono kc-muted">just now</td><td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td></tr>
+              <tr><td><div style="display: flex; align-items: center; gap: 8px;"><div class="kc-avatar kc-avatar-sm" style="background: var(--accent-100); color: var(--accent-700);">LP</div>Lestari Putri</div></td><td class="kc-mono">lestari@acme.id</td><td><span class="role-pill role-admin">Admin</span></td><td>Finance, Mgmt</td><td class="kc-mono kc-muted">14m</td><td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td></tr>
+              <tr><td><div style="display: flex; align-items: center; gap: 8px;"><div class="kc-avatar kc-avatar-sm">DR</div>Dewi Rahmawati</div></td><td class="kc-mono">dewi@acme.id</td><td><span class="role-pill role-member">Member</span></td><td>Procurement</td><td class="kc-mono kc-muted">2h</td><td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td></tr>
+              <tr><td><div style="display: flex; align-items: center; gap: 8px;"><div class="kc-avatar kc-avatar-sm">FN</div>Fitri Nurhaliza</div></td><td class="kc-mono">fitri@acme.id</td><td><span class="role-pill role-member">Member</span></td><td>Sales</td><td class="kc-mono kc-muted">38m</td><td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td></tr>
+              <tr><td><div style="display: flex; align-items: center; gap: 8px;"><div class="kc-avatar kc-avatar-sm" style="background: var(--accent-100); color: var(--accent-700);">JK</div>Joko Kusuma</div></td><td class="kc-mono">joko@acme.id</td><td><span class="role-pill role-member">Member</span></td><td>Finance</td><td class="kc-mono" style="color: var(--state-warn);">invited 2d</td><td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td></tr>
+              <tr><td><div style="display: flex; align-items: center; gap: 8px;"><div class="kc-avatar kc-avatar-sm" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>AR Collector</div></td><td class="kc-mono kc-muted">—</td><td><span class="role-pill role-auto">Autonomous</span></td><td>FIN.* (read), email</td><td class="kc-mono kc-muted">14m</td><td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td></tr>
+              <tr><td><div style="display: flex; align-items: center; gap: 8px;"><div class="kc-avatar kc-avatar-sm" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>Lead Triager</div></td><td class="kc-mono kc-muted">—</td><td><span class="role-pill role-auto">Autonomous</span></td><td>CRM.Lead</td><td class="kc-mono kc-muted">2m</td><td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td></tr>
+              <tr><td>External · Auditor</td><td class="kc-mono kc-muted">auditor@kpmg.com</td><td><span class="role-pill role-guest">Guest</span></td><td>Finance (view)</td><td class="kc-mono kc-muted">Yesterday</td><td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SECURITY -->
+      <section class="admin-section" id="s-security">
+        <div class="t-h2" style="margin-bottom: 6px;">Security policy</div>
+        <p class="t-body-sm" style="margin-bottom: 16px;">Workspace-wide controls. Members inherit unless overridden by group policy.</p>
+
+        <div class="form-block">
+          <h3>Authentication</h3>
+          <div class="row">
+            <div class="label"><div class="nm">Require 2FA for all members</div><div class="help">Members will be prompted to set up 2FA on next sign-in. Existing sessions are not revoked.</div></div>
+            <div><label style="display: inline-flex; gap: 8px; align-items: center;"><input type="checkbox" class="kc-switch" checked> <span style="font-size: 13px; color: var(--text-primary);">Required</span></label></div>
+          </div>
+          <div class="row">
+            <div class="label"><div class="nm">Minimum password length</div></div>
+            <div style="display: flex; align-items: center; gap: 8px;"><input class="kc-input kc-mono" value="12" style="width: 80px;"><span class="t-caption">characters · also requires mixed case + number + symbol</span></div>
+          </div>
+          <div class="row">
+            <div class="label"><div class="nm">SSO providers</div></div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <span class="kc-chip kc-chip-active">Google · acme.id</span>
+              <span class="kc-chip kc-chip-active">Microsoft · acme.id</span>
+              <button class="kc-chip"><i data-icon="plus" class="kc-icon-sm"></i> Add provider</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-block">
+          <h3>Session</h3>
+          <div class="row">
+            <div class="label"><div class="nm">Idle timeout</div><div class="help">Members are signed out after this period of inactivity.</div></div>
+            <div><select class="kc-select" style="width: 180px;"><option>2 hours</option><option selected>8 hours</option><option>24 hours</option><option>Never</option></select></div>
+          </div>
+          <div class="row">
+            <div class="label"><div class="nm">Max session length</div></div>
+            <div><select class="kc-select" style="width: 180px;"><option>1 day</option><option selected>7 days</option><option>30 days</option></select></div>
+          </div>
+        </div>
+
+        <div class="form-block">
+          <h3>IP allowlist <span class="kc-badge kc-badge-warn" style="font-size: 10px;">Enterprise</span></h3>
+          <div class="row">
+            <div class="label"><div class="nm">Restrict access to these IPs</div><div class="help">Members signing in from any other IP will be blocked. Autonomous agents are exempt.</div></div>
+            <div class="ip-list">
+              <div class="row" style="border: 0; padding: 0;"><span style="flex: 1; padding: 6px 10px; background: var(--bg-sunken); border-radius: 4px; font: 500 12px/1 var(--font-mono);">103.42.181.0/24</span><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="x" class="kc-icon-sm"></i></button></div>
+              <div class="row" style="border: 0; padding: 0;"><span style="flex: 1; padding: 6px 10px; background: var(--bg-sunken); border-radius: 4px; font: 500 12px/1 var(--font-mono);">103.42.190.0/24</span><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="x" class="kc-icon-sm"></i></button></div>
+              <button class="kc-btn kc-btn-secondary kc-btn-sm" style="align-self: flex-start; margin-top: 4px;"><i data-icon="plus"></i>Add CIDR</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BRANDING -->
+      <section class="admin-section" id="s-brand">
+        <div class="t-h2" style="margin-bottom: 6px;">Workspace branding</div>
+        <p class="t-body-sm" style="margin-bottom: 16px;">Override KantorCore's default chrome with your own logo and accent color. Members see your brand; the product mark stays consistent.</p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+
+          <div class="form-block" style="margin-bottom: 0;">
+            <h3>Identity</h3>
+            <div class="row">
+              <div class="label"><div class="nm">Logo</div><div class="help">PNG or SVG · 200×200 max · 1MB.</div></div>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 56px; height: 56px; border-radius: var(--r-md); background: var(--accent-600); color: white; display: grid; place-items: center; font: 700 22px/1 var(--font-sans);">A</div>
+                <div style="display: flex; flex-direction: column; gap: 6px;"><button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="upload"></i>Upload</button><button class="kc-btn kc-btn-ghost kc-btn-xs">Remove</button></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="label"><div class="nm">Brand color</div><div class="help">Replaces the default accent in this workspace. Affects chrome, CTA buttons, focus rings, agent avatars.</div></div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="color" value="#3B4FC4" style="width: 36px; height: 36px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--bg-surface); cursor: pointer;">
+                <input class="kc-input kc-mono" value="#3B4FC4" style="width: 120px;">
+                <span class="kc-mono kc-muted" style="font-size: 11px;">AA · 4.51:1</span>
+              </div>
+            </div>
+            <div class="row">
+              <div class="label"><div class="nm">Login background</div><div class="help">Image shown on the left panel of /login. PNG or JPG · 2400×1600 recommended.</div></div>
+              <div><button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="upload"></i>Upload background</button><button class="kc-btn kc-btn-ghost kc-btn-xs">Use default</button></div>
+            </div>
+            <div class="row">
+              <div class="label"><div class="nm">Custom domain</div></div>
+              <div class="kc-input-group" style="max-width: 340px;"><input class="kc-input kc-mono" value="kantor.acme.id"><span class="kc-affix kc-affix-end"><span class="kc-badge kc-badge-success" style="font-size: 10px;">verified</span></span></div>
+            </div>
+          </div>
+
+          <div class="form-block" style="margin-bottom: 0;">
+            <h3>Live preview</h3>
+            <div class="brand-preview" style="--brand-color: #3B4FC4;">
+              <div class="top">
+                <div class="ws"><span class="mark">A</span> PT Acme Indonesia</div>
+                <div style="flex: 1;"></div>
+                <i data-icon="bell" style="color: rgba(255,255,255,0.6);"></i>
+                <i data-icon="user" style="color: rgba(255,255,255,0.6);"></i>
+              </div>
+              <div class="body" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="kc-card" style="padding: 10px; box-shadow: var(--shadow-sm);">
+                  <div style="font: 600 13px/1.4 var(--font-sans);">Posisi kas</div>
+                  <div style="font: 700 22px/1.1 var(--font-sans); margin-top: 6px;">Rp 8.420.000.000</div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <button>Buat tagihan</button>
+                  <button class="kc-btn kc-btn-secondary kc-btn-sm" style="background: transparent;">Batal</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- INTEGRATIONS -->
+      <section class="admin-section" id="s-integ">
+        <div class="t-h2" style="margin-bottom: 6px;">Integrations</div>
+        <p class="t-body-sm" style="margin-bottom: 16px;">Connect KantorCore to outside services. Government endpoints require IS-L10N enabled.</p>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <div class="integ-card">
+            <div class="logo" style="background: #1A2B5A; color: white;">DJP</div>
+            <div><div class="nm">CoreTax DJP · e-Faktur</div><div class="ds">Submit e-Faktur, sync NPWP records.</div></div>
+            <div><span class="kc-badge kc-badge-success"><span class="kc-dot"></span>Connected</span></div>
+          </div>
+          <div class="integ-card">
+            <div class="logo" style="background: #006A4E; color: white;">BPJS</div>
+            <div><div class="nm">BPJS Kesehatan + Ketenagakerjaan</div><div class="ds">Employee enrollment, monthly contributions.</div></div>
+            <div><span class="kc-badge kc-badge-success"><span class="kc-dot"></span>Connected</span></div>
+          </div>
+          <div class="integ-card">
+            <div class="logo" style="background: #0064D2; color: white;">QRIS</div>
+            <div><div class="nm">QRIS payment gateway</div><div class="ds">Accept Bank Indonesia QRIS payments on invoices.</div></div>
+            <div><button class="kc-btn kc-btn-secondary kc-btn-sm">Connect</button></div>
+          </div>
+          <div class="integ-card">
+            <div class="logo" style="background: #2EB67D; color: white;"><i data-icon="message"></i></div>
+            <div><div class="nm">WhatsApp Business · Cloud API</div><div class="ds">2-way customer chat for IS-OMNI.</div></div>
+            <div><span class="kc-badge kc-badge-warn"><span class="kc-dot"></span>Auth needed</span></div>
+          </div>
+          <div class="integ-card">
+            <div class="logo" style="background: #EA4335; color: white;"><i data-icon="mail"></i></div>
+            <div><div class="nm">Gmail · OAuth</div><div class="ds">Send and receive emails via members' Gmail accounts.</div></div>
+            <div><span class="kc-badge kc-badge-success"><span class="kc-dot"></span>Connected</span></div>
+          </div>
+          <div class="integ-card">
+            <div class="logo" style="background: #5865F2; color: white;"><i data-icon="phone"></i></div>
+            <div><div class="nm">Voice telephony · Twilio</div><div class="ds">Inbound + outbound calls from agent surfaces.</div></div>
+            <div><button class="kc-btn kc-btn-secondary kc-btn-sm">Connect</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- META STUDIO -->
+      <section class="admin-section" id="s-meta">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px;">
+          <div><div class="t-h2">ModelMeta studio</div><p class="t-body-sm">Browse entity declarations · view computed and AI fields · propose schema changes (read-only in v1)</p></div>
+          <div style="display: flex; gap: 6px;"><button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="download"></i>Export schema</button></div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-list">
+            <div style="padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);"><input class="kc-input" placeholder="Search entities…"></div>
+            <div class="meta-entity"><span class="nm">crm.deal</span><span class="count">18f · ai 2</span></div>
+            <div class="meta-entity is-active"><span class="nm">fin.invoice</span><span class="count">22f · ai 2</span></div>
+            <div class="meta-entity"><span class="nm">fin.bill</span><span class="count">20f</span></div>
+            <div class="meta-entity"><span class="nm">hr.employee</span><span class="count">34f · ai 1</span></div>
+            <div class="meta-entity"><span class="nm">hr.leave</span><span class="count">12f</span></div>
+            <div class="meta-entity"><span class="nm">purch.po</span><span class="count">16f · ai 1</span></div>
+            <div class="meta-entity"><span class="nm">sales.order</span><span class="count">19f</span></div>
+            <div class="meta-entity"><span class="nm">sales.quote</span><span class="count">17f · ai 1</span></div>
+            <div class="meta-entity"><span class="nm">proj.project</span><span class="count">14f</span></div>
+            <div class="meta-entity"><span class="nm">proj.task</span><span class="count">18f · ai 1</span></div>
+            <div class="meta-entity"><span class="nm">time.entry</span><span class="count">9f</span></div>
+            <div class="meta-entity"><span class="nm">exp.expense</span><span class="count">13f · ai 1</span></div>
+            <div class="meta-entity"><span class="nm">hd.ticket</span><span class="count">21f · ai 2</span></div>
+          </div>
+
+          <div class="meta-detail">
+            <div class="meta-detail-head" style="display: flex; align-items: baseline; gap: 16px;">
+              <div>
+                <div class="nm">fin.invoice</div>
+                <div class="meta">module IS-FIN · chatter true · 22 fields · 4 indexes · used by 6 agents · 14 tools</div>
+              </div>
+              <div style="margin-left: auto; display: flex; gap: 6px;">
+                <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="eye"></i>JSON</button>
+                <button class="kc-btn kc-btn-secondary kc-btn-sm">Propose change</button>
+              </div>
+            </div>
+
+            <div class="meta-fields">
+              <div class="meta-field"><span class="fnm">id</span><span class="ftype">uuid</span><span class="fdesc">Primary key, server-generated.</span><span class="fkind scalar">scalar</span></div>
+              <div class="meta-field"><span class="fnm">number</span><span class="ftype">string</span><span class="fdesc">Display number, format <code>INV-YYYY-####</code>.</span><span class="fkind computed">computed</span></div>
+              <div class="meta-field"><span class="fnm">customer_id</span><span class="ftype">→ crm.customer</span><span class="fdesc">Owning customer · required.</span><span class="fkind ref">ref</span></div>
+              <div class="meta-field"><span class="fnm">total</span><span class="ftype">decimal(18,2)</span><span class="fdesc">Sum of line totals + tax.</span><span class="fkind computed">computed</span></div>
+              <div class="meta-field"><span class="fnm">due_date</span><span class="ftype">date</span><span class="fdesc">Calculated from issued_at + terms.</span><span class="fkind computed">computed</span></div>
+              <div class="meta-field"><span class="fnm">days_overdue</span><span class="ftype">integer</span><span class="fdesc">now() - due_date · clamped to 0.</span><span class="fkind computed">computed</span></div>
+              <div class="meta-field"><span class="fnm">customer_health_summary</span><span class="ftype">text</span><span class="fdesc">AI · sonnet-4-5 · on_change · stored.</span><span class="fkind ai">ai-field</span></div>
+              <div class="meta-field"><span class="fnm">fraud_risk_score</span><span class="ftype">float (0–1)</span><span class="fdesc">AI · sonnet-4-5 · on_create · stored.</span><span class="fkind ai">ai-field</span></div>
+              <div class="meta-field"><span class="fnm">status</span><span class="ftype">enum</span><span class="fdesc">draft → sent → overdue → paid → closed</span><span class="fkind scalar">scalar</span></div>
+              <div class="meta-field"><span class="fnm">items</span><span class="ftype">→ fin.invoice_line[]</span><span class="fdesc">Line items, ordered.</span><span class="fkind ref">ref</span></div>
+              <div class="meta-field"><span class="fnm">payments</span><span class="ftype">→ fin.payment[]</span><span class="fdesc">Payments applied to this invoice.</span><span class="fkind ref">ref</span></div>
+              <div class="meta-field"><span class="fnm">reminders</span><span class="ftype">→ fin.reminder[]</span><span class="fdesc">Dunning reminders sent.</span><span class="fkind ref">ref</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+<script src="../icons.js"></script>
+<script>
+  const map = { users: 'Users & groups', security: 'Security', brand: 'Branding', integ: 'Integrations', meta: 'ModelMeta studio' };
+  document.querySelectorAll('[data-section]').forEach(b => {
+    b.addEventListener('click', () => {
+      const s = b.getAttribute('data-section');
+      document.querySelectorAll('.admin-section').forEach(x => x.classList.toggle('is-active', x.id === 's-' + s));
+      document.querySelectorAll('[data-section]').forEach(x => x.classList.toggle('is-active', x.getAttribute('data-section') === s));
+      document.getElementById('crumb').textContent = map[s];
+    });
+  });
+</script>
+</body></html>

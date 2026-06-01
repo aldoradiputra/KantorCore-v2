@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<title>KantorCore — Customer Portal</title>
+<link rel="stylesheet" href="../design-tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>
+  body { margin: 0; background: var(--bg-canvas); min-height: 100vh; }
+
+  /* Top switcher */
+  .portal-switch { position: fixed; top: 16px; right: 24px; z-index: 10; display: flex; gap: 6px; }
+
+  .portal-view { display: none; }
+  .portal-view.is-active { display: block; }
+
+  /* Top bar — portal-specific (tenant-branded) */
+  .portal-top {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0 32px;
+    display: flex; align-items: center;
+    height: 64px;
+    gap: 24px;
+  }
+  .portal-top .tenant {
+    display: flex; align-items: center; gap: 10px;
+    font: 700 16px/1 var(--font-sans);
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+  .portal-top .tenant .mark {
+    width: 32px; height: 32px;
+    background: var(--accent-600);
+    color: white;
+    border-radius: var(--r-md);
+    display: grid; place-items: center;
+    font: 700 14px/1 var(--font-sans);
+  }
+  .portal-top nav { display: flex; gap: 4px; }
+  .portal-top nav a {
+    padding: 6px 12px;
+    border-radius: var(--r-sm);
+    font: 500 13px/1 var(--font-sans);
+    color: var(--text-secondary);
+  }
+  .portal-top nav a:hover { background: var(--fill-subtle); color: var(--text-primary); text-decoration: none; }
+  .portal-top nav a.is-active { background: var(--fill-accent-subtle); color: var(--text-accent); font-weight: 600; }
+  .portal-top .spacer { flex: 1; }
+  .portal-top .powered {
+    font: 500 10px/1.2 var(--font-sans);
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  /* Hero */
+  .portal-hero {
+    padding: 64px 48px;
+    background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-canvas) 100%);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .portal-hero h1 { font: 700 36px/1.15 var(--font-sans); color: var(--text-primary); letter-spacing: -0.03em; margin-bottom: 8px; max-width: 18ch; }
+  .portal-hero p { font: 400 16px/1.55 var(--font-sans); color: var(--text-secondary); max-width: 56ch; }
+
+  .portal-content { padding: 32px 48px; }
+
+  .blocks {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .block-card { padding: 20px; }
+  .block-card .h { font: 600 16px/1.3 var(--font-sans); color: var(--text-primary); margin-bottom: 4px; }
+  .block-card .sub { font: 400 13px/1.4 var(--font-sans); color: var(--text-muted); margin-bottom: 16px; }
+
+  /* invoices block */
+  .inv-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    align-items: center;
+  }
+  .inv-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .inv-row .num { font: 600 13px/1.3 var(--font-mono); color: var(--text-primary); }
+  .inv-row .meta { font: 400 12px/1.4 var(--font-sans); color: var(--text-muted); margin-top: 2px; }
+  .inv-row .amt { font: 600 14px/1 var(--font-mono); color: var(--text-primary); }
+
+  /* tickets */
+  .tk-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .tk-row:last-child { border-bottom: 0; }
+  .tk-row .nm { font: 600 13px/1.3 var(--font-sans); color: var(--text-primary); }
+  .tk-row .meta { font: 400 12px/1.4 var(--font-sans); color: var(--text-muted); margin-top: 2px; }
+
+  /* KMS quick links */
+  .kms-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+  .kms-tile { padding: 16px; cursor: pointer; transition: border-color var(--d-fast); }
+  .kms-tile:hover { border-color: var(--accent-500); }
+  .kms-tile .ic { width: 36px; height: 36px; border-radius: var(--r-md); background: var(--fill-accent-subtle); color: var(--text-accent); display: grid; place-items: center; margin-bottom: 12px; }
+  .kms-tile .nm { font: 600 14px/1.3 var(--font-sans); color: var(--text-primary); }
+  .kms-tile .ds { font: 400 12px/1.5 var(--font-sans); color: var(--text-muted); margin-top: 4px; }
+
+  /* Magic link landing */
+  .magic-page {
+    min-height: calc(100vh - 64px);
+    display: grid; place-items: center;
+    padding: 48px;
+  }
+  .magic-card {
+    width: 480px; max-width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-xl);
+    padding: 40px;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+  }
+  .magic-card .ic {
+    width: 56px; height: 56px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: var(--fill-accent-subtle);
+    color: var(--text-accent);
+    display: grid; place-items: center;
+  }
+  .magic-card h2 { font: 700 22px/1.3 var(--font-sans); color: var(--text-primary); letter-spacing: -0.02em; margin-bottom: 8px; }
+  .magic-card p { font: 400 14px/1.55 var(--font-sans); color: var(--text-secondary); margin-bottom: 24px; }
+
+  /* KMS article */
+  .kms-shell {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 48px;
+  }
+  .kms-eyebrow {
+    font: 600 11px/1 var(--font-sans);
+    color: var(--text-accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .kms-shell h1 { font: 700 32px/1.2 var(--font-sans); color: var(--text-primary); letter-spacing: -0.02em; margin-bottom: 16px; }
+  .kms-byline { display: flex; align-items: center; gap: 12px; padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px; font: 400 12px/1.4 var(--font-sans); color: var(--text-muted); }
+  .kms-shell h2 { font: 700 22px/1.3 var(--font-sans); color: var(--text-primary); margin-top: 32px; margin-bottom: 12px; letter-spacing: -0.02em; }
+  .kms-shell h3 { font: 600 16px/1.4 var(--font-sans); color: var(--text-primary); margin-top: 24px; margin-bottom: 8px; }
+  .kms-shell p { font: 400 15px/1.7 var(--font-sans); color: var(--text-primary); margin-bottom: 12px; }
+  .kms-shell ul, .kms-shell ol { margin: 12px 0 12px 24px; }
+  .kms-shell li { font: 400 15px/1.7 var(--font-sans); color: var(--text-primary); margin-bottom: 4px; }
+  .kms-shell code { background: var(--bg-sunken); padding: 1px 6px; border-radius: var(--r-xs); font-size: 13px; }
+  .kms-shell .note { background: var(--state-info-bg); border-left: 3px solid var(--state-info); padding: 12px 16px; border-radius: 0 var(--r-md) var(--r-md) 0; margin: 16px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="portal-switch">
+  <button class="kc-btn kc-btn-secondary kc-btn-sm" data-pview="home">Portal home</button>
+  <button class="kc-btn kc-btn-secondary kc-btn-sm" data-pview="magic">Magic link</button>
+  <button class="kc-btn kc-btn-secondary kc-btn-sm" data-pview="kms">KMS article</button>
+</div>
+
+<!-- HOME -->
+<section class="portal-view is-active" id="pv-home">
+  <header class="portal-top">
+    <div class="tenant"><div class="mark">A</div>PT Acme Indonesia</div>
+    <nav>
+      <a class="is-active">Home</a>
+      <a>Invoices</a>
+      <a>Tickets</a>
+      <a>Knowledge base</a>
+      <a>Documents</a>
+    </nav>
+    <div class="spacer"></div>
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><div class="kc-avatar kc-avatar-sm">SW</div>Sinta · sinta@acme.id</div>
+    <div class="powered">Powered by <img src="../assets/logo.svg" style="height: 14px;"></div>
+  </header>
+
+  <div class="portal-hero">
+    <h1>Halo Bu Sinta — welcome back.</h1>
+    <p>This is your account home for PT Acme Indonesia. Pay open invoices, raise a support ticket, or browse our help articles. We're here Mon–Fri 09:00–18:00 WIB.</p>
+  </div>
+
+  <div class="portal-content">
+    <div class="blocks">
+
+      <div class="kc-card block-card">
+        <div class="h">Outstanding invoices · 2</div>
+        <div class="sub">Total <strong style="color: var(--state-danger); font-family: var(--font-mono);">Rp 153.430.000</strong> due</div>
+
+        <div class="inv-row">
+          <div>
+            <div class="num">INV-2026-0179</div>
+            <div class="meta">Issued 12 Apr · due 12 May · <strong style="color: var(--state-danger);">overdue 11d</strong></div>
+          </div>
+          <span class="kc-badge kc-badge-danger" style="font-size: 11px;"><span class="kc-dot"></span>Overdue</span>
+          <div class="amt">Rp 145.000.000</div>
+          <button class="kc-btn kc-btn-primary kc-btn-sm">Pay now</button>
+        </div>
+
+        <div class="inv-row">
+          <div>
+            <div class="num">INV-2026-0184</div>
+            <div class="meta">Issued 28 Apr · due 28 May</div>
+          </div>
+          <span class="kc-badge kc-badge-info" style="font-size: 11px;"><span class="kc-dot"></span>Open</span>
+          <div class="amt">Rp 8.430.000</div>
+          <button class="kc-btn kc-btn-secondary kc-btn-sm">Pay</button>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <a href="#" style="font-size: 13px; font-weight: 600;">View all invoices →</a>
+        </div>
+      </div>
+
+      <div class="kc-card block-card">
+        <div class="h">Your tickets · 1 open</div>
+        <div class="sub">Average response time: 2h 14m</div>
+
+        <div class="tk-row">
+          <div>
+            <div class="nm">#KC-2018 · Sync BPJS error</div>
+            <div class="meta">Open · awaiting your response · updated 1h ago</div>
+          </div>
+          <span class="kc-badge kc-badge-warn" style="font-size: 11px;"><span class="kc-dot"></span>Open</span>
+        </div>
+        <div class="tk-row">
+          <div>
+            <div class="nm">#KC-2007 · Pricelist multi-currency</div>
+            <div class="meta">Resolved · 1d ago</div>
+          </div>
+          <span class="kc-badge kc-badge-success" style="font-size: 11px;"><span class="kc-dot"></span>Resolved</span>
+        </div>
+
+        <button class="kc-btn kc-btn-primary kc-btn-sm" style="margin-top: 14px; width: 100%;"><i data-icon="plus"></i>Submit a new ticket</button>
+      </div>
+    </div>
+
+    <div class="kc-card block-card">
+      <div class="h">Knowledge base</div>
+      <div class="sub">Quick answers to common questions, in Bahasa Indonesia.</div>
+      <input class="kc-input" placeholder="Search articles…" style="margin-bottom: 12px;">
+
+      <div class="kms-grid">
+        <div class="kc-card kms-tile">
+          <div class="ic"><i data-icon="briefcase"></i></div>
+          <div class="nm">BPJS sync errors</div>
+          <div class="ds">Resolve "NIK needs verification" and other common sync failures.</div>
+        </div>
+        <div class="kc-card kms-tile">
+          <div class="ic"><i data-icon="wallet"></i></div>
+          <div class="nm">Payment via QRIS</div>
+          <div class="ds">Pay any invoice using your favorite QRIS app — 30-second guide.</div>
+        </div>
+        <div class="kc-card kms-tile">
+          <div class="ic"><i data-icon="file"></i></div>
+          <div class="nm">e-Faktur for tagged transactions</div>
+          <div class="ds">How CoreTax DJP integration auto-generates faktur for taxable items.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAGIC LINK -->
+<section class="portal-view" id="pv-magic">
+  <header class="portal-top">
+    <div class="tenant"><div class="mark">A</div>PT Acme Indonesia</div>
+    <div class="spacer"></div>
+    <div class="powered">Powered by <img src="../assets/logo.svg" style="height: 14px;"></div>
+  </header>
+
+  <div class="magic-page">
+    <div class="magic-card">
+      <div class="ic"><i data-icon="mail" class="kc-icon-xl"></i></div>
+      <h2>Welcome, Bu Sinta.</h2>
+      <p>You've been signed in with a one-time link sent to <strong>sinta@acme.id</strong>. This link expires in <strong>15 minutes</strong>. Click below to access your customer portal.</p>
+
+      <button class="kc-btn kc-btn-primary kc-btn-lg" style="width: 100%;">Continue to portal →</button>
+
+      <div class="kc-banner kc-banner-warn" style="margin-top: 24px; text-align: left;">
+        <i data-icon="warning"></i>
+        <div>If this wasn't you, <a href="#">report and revoke this link</a>. Your account has not been compromised — magic links are signed and single-use.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- KMS -->
+<section class="portal-view" id="pv-kms">
+  <header class="portal-top">
+    <div class="tenant"><div class="mark">A</div>PT Acme Indonesia</div>
+    <nav>
+      <a>Home</a>
+      <a>Invoices</a>
+      <a>Tickets</a>
+      <a class="is-active">Knowledge base</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="powered">Powered by <img src="../assets/logo.svg" style="height: 14px;"></div>
+  </header>
+
+  <article class="kms-shell">
+    <div class="kc-crumbs" style="margin-bottom: 12px;">
+      <a href="#">Knowledge base</a><span class="kc-crumb-sep">/</span>
+      <a href="#">BPJS &amp; Ketenagakerjaan</a><span class="kc-crumb-sep">/</span>
+      <span class="kc-crumb-cur">NIK verification</span>
+    </div>
+    <div class="kms-eyebrow">BPJS · troubleshooting</div>
+    <h1>Resolving "NIK needs verification" during BPJS sync</h1>
+
+    <div class="kms-byline">
+      <div class="kc-avatar kc-avatar-sm">AW</div>
+      <div><div style="color: var(--text-primary); font-weight: 500;">Andi Wijaya</div><div>Updated 19 May 2026 · 4 min read · 1,847 views</div></div>
+      <div style="margin-left: auto; display: flex; gap: 6px;">
+        <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="copy" class="kc-icon-sm"></i></button>
+        <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="external" class="kc-icon-sm"></i></button>
+      </div>
+    </div>
+
+    <p>BPJS Ketenagakerjaan sync may fail for one or more employees with the error <code>NIK needs verification</code>. This happens when Dukcapil (Indonesia's national civil registry) flags a NIK for re-verification — most commonly because of an address change, name update, or stale KTP photo.</p>
+
+    <h2>Why it happens</h2>
+    <p>The BPJS API performs a real-time lookup against Dukcapil on every employee enrollment. If Dukcapil returns <code>requires_verification</code>, the BPJS API rejects the sync until the citizen completes verification in person at their local <em>Disdukcapil</em> office.</p>
+
+    <div class="note">
+      <strong>Note:</strong> This is a Dukcapil-side check — KantorCore cannot bypass it. The good news: re-verification is usually completed within 1–3 business days.
+    </div>
+
+    <h2>Fix it in 4 steps</h2>
+    <ol>
+      <li>Open the affected employee record in <strong>HR → Employees</strong>.</li>
+      <li>Check the <strong>BPJS Sync</strong> tab — you'll see the exact rejection reason.</li>
+      <li>Ask the employee to visit their local Disdukcapil office. They need to bring a current KTP and complete a fingerprint scan.</li>
+      <li>Once Disdukcapil updates the record (you can verify at <a href="https://dukcapil.kemendagri.go.id" target="_blank">dukcapil.kemendagri.go.id</a>), come back to KantorCore and click <strong>Retry sync</strong> on the employee record.</li>
+    </ol>
+
+    <h2>Bulk handling</h2>
+    <p>If you have multiple employees with the same issue, you can bulk-export the list and share it with HR. From the BPJS sync log, click <strong>Export failed → CSV</strong>. You can then send the list as a single email to your HR team.</p>
+
+    <h3>Still stuck?</h3>
+    <p>Submit a support ticket and our team will help you within 4 hours during business hours.</p>
+
+    <div style="display: flex; gap: 8px; margin-top: 16px;">
+      <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="help"></i>Submit a ticket</button>
+      <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="message"></i>Chat with us</button>
+    </div>
+
+    <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border-subtle); display: flex; gap: 16px; align-items: center;">
+      <span style="font-size: 13px; color: var(--text-muted);">Was this article helpful?</span>
+      <button class="kc-btn kc-btn-secondary kc-btn-sm">👍 Yes</button>
+      <button class="kc-btn kc-btn-secondary kc-btn-sm">👎 No</button>
+    </div>
+  </article>
+</section>
+
+<script src="../icons.js"></script>
+<script>
+  document.querySelectorAll('[data-pview]').forEach(b => {
+    b.addEventListener('click', () => {
+      const v = b.getAttribute('data-pview');
+      document.querySelectorAll('.portal-view').forEach(s => s.classList.toggle('is-active', s.id === 'pv-' + v));
+    });
+  });
+</script>
+</body></html>

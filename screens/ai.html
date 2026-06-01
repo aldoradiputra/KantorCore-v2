@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<title>KantorCore — AI / Agents</title>
+<link rel="stylesheet" href="../design-tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="_shell.css">
+<style>
+  body { margin: 0; overflow: hidden; }
+
+  /* AI section nav */
+  .ai-subnav {
+    display: flex; gap: 4px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+    overflow: auto;
+  }
+  .ai-subnav button {
+    appearance: none; border: 0; background: transparent;
+    padding: 6px 12px;
+    border-radius: var(--r-sm);
+    font: 500 13px/1 var(--font-sans);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .ai-subnav button:hover { background: var(--fill-subtle); color: var(--text-primary); }
+  .ai-subnav button.is-active { background: var(--fill-accent-subtle); color: var(--text-accent); font-weight: 600; }
+  .ai-subnav .count { font: 500 10px/1 var(--font-mono); padding: 1px 5px; background: var(--fill-subtle); border-radius: var(--r-full); }
+  .ai-subnav button.is-active .count { background: rgba(var(--accent-rgb), 0.18); color: var(--text-accent); }
+
+  .ai-section { display: none; }
+  .ai-section.is-active { display: block; }
+
+  /* §1 Inbox */
+  .inbox-wrap { display: grid; grid-template-columns: 340px 1fr; min-height: 0; flex: 1; }
+  .inbox-list {
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border-subtle);
+    overflow: auto;
+  }
+  .inbox-filter {
+    display: flex; padding: 10px 12px; gap: 6px; border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface); position: sticky; top: 0; z-index: 1;
+  }
+  .inbox-row {
+    display: grid; grid-template-columns: 32px 1fr;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+  .inbox-row:hover { background: var(--fill-subtle); }
+  .inbox-row.is-active { background: var(--fill-accent-subtle); border-left-color: var(--accent-500); }
+  .inbox-row .ag { width: 32px; height: 32px; border-radius: var(--r-md); display: grid; place-items: center; background: var(--fill-accent-subtle); color: var(--text-accent); flex-shrink: 0; }
+  .inbox-row .ag.danger { background: var(--state-danger-bg); color: var(--state-danger); }
+  .inbox-row .ag.warn { background: var(--state-warn-bg); color: var(--state-warn); }
+  .inbox-row .ag.success { background: var(--state-success-bg); color: var(--state-success); }
+  .inbox-row .b { min-width: 0; }
+  .inbox-row .nm { font: 600 13px/1.3 var(--font-sans); color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+  .inbox-row .nm .when { margin-left: auto; font: 500 11px/1 var(--font-mono); color: var(--text-muted); }
+  .inbox-row .desc { font: 400 12px/1.5 var(--font-sans); color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .inbox-row .meta { display: flex; gap: 6px; margin-top: 6px; }
+
+  .run-view { overflow: auto; padding: 24px 32px; }
+
+  /* §2 Conversation panel docked to record (full-width here) */
+  .conv-wrap { padding: 16px var(--gutter); display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+  .conv-thread {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .conv-head {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-surface);
+  }
+  .conv-head .title { font: 600 14px/1 var(--font-sans); color: var(--text-primary); }
+  .conv-head .ctx { font: 500 11px/1 var(--font-mono); color: var(--text-muted); padding: 2px 6px; background: var(--fill-subtle); border-radius: var(--r-sm); }
+  .conv-msgs { padding: 8px 0; display: flex; flex-direction: column; }
+  .conv-input {
+    border-top: 1px solid var(--border-subtle);
+    padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .conv-input textarea {
+    width: 100%;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-sunken);
+    border-radius: var(--r-md);
+    padding: 8px 10px;
+    font: 400 13px/1.5 var(--font-sans);
+    color: var(--text-primary);
+    resize: none; outline: 0;
+    min-height: 48px;
+  }
+  .conv-input textarea:focus { border-color: var(--border-focus); box-shadow: var(--shadow-focus); }
+  .conv-input .row { display: flex; align-items: center; gap: 4px; }
+  .conv-input .row .kc-spacer { flex: 1; }
+
+  .ctx-card { padding: 14px 16px; }
+  .ctx-card .kc-card-title { margin-bottom: 6px; }
+  .ctx-fields { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+  .ctx-fields .row { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
+  .ctx-fields .row .k { color: var(--text-muted); font-weight: 500; }
+  .ctx-fields .row .v { color: var(--text-primary); }
+
+  /* Reasoning preview */
+  .reason {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--bg-sunken);
+    border-radius: var(--r-md);
+    font: 400 12px/1.5 var(--font-sans);
+    color: var(--text-secondary);
+    border-left: 2px solid var(--accent-400);
+  }
+  .reason .h {
+    font: 600 10px/1 var(--font-sans);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* Diff change "what did I do" */
+  .diff-row { font: 500 12px/1.55 var(--font-mono); color: var(--text-secondary); padding: 2px 0; }
+  .diff-row.minus { color: var(--state-danger); }
+  .diff-row.plus { color: var(--state-success); }
+
+  /* §3 AI Field wizard */
+  .wizard {
+    max-width: 960px; margin: 24px auto;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+  .wizard-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .wizard-steps { display: flex; gap: 4px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-sunken); }
+  .wstep {
+    display: inline-flex; align-items: center; gap: 6px;
+    font: 500 12px/1 var(--font-sans);
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+  }
+  .wstep.done { color: var(--state-success); }
+  .wstep.active { background: var(--fill-accent-subtle); color: var(--text-accent); font-weight: 600; }
+  .wstep .num {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--neutral-200);
+    color: var(--text-muted);
+    display: grid; place-items: center;
+    font: 600 10px/1 var(--font-sans);
+  }
+  .wstep.done .num { background: var(--state-success); color: #fff; }
+  .wstep.active .num { background: var(--accent-500); color: #fff; }
+  .wstep-sep { color: var(--border-strong); }
+
+  .wizard-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .wizard-left, .wizard-right { padding: 20px; }
+  .wizard-right { background: var(--bg-sunken); border-left: 1px solid var(--border-subtle); }
+  .wizard-foot {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .preview {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: 14px;
+    font: 400 13px/1.55 var(--font-sans);
+    color: var(--text-primary);
+  }
+  .preview .h { font: 600 11px/1 var(--font-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-accent); margin-bottom: 8px; }
+
+  /* §4 Tool catalog */
+  .tool-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px var(--gutter); }
+  .tool-card { padding: 14px; }
+  .tool-card .nm { font: 600 14px/1.3 var(--font-mono); color: var(--text-primary); margin-bottom: 4px; }
+  .tool-card .ds { font: 400 12px/1.5 var(--font-sans); color: var(--text-secondary); margin-bottom: 10px; }
+  .tool-card .stats { display: flex; gap: 12px; font: 500 11px/1 var(--font-mono); color: var(--text-muted); }
+
+  /* §5 Mandates */
+  .mandate-table th { background: var(--bg-sunken); }
+
+  /* §6 Run inspector */
+  .run-grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; padding: 16px var(--gutter); }
+  .run-timeline {
+    padding: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .run-step {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: grid; grid-template-columns: 28px 1fr; gap: 12px;
+  }
+  .run-step:last-child { border-bottom: 0; }
+  .run-step .marker {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--fill-subtle);
+    display: grid; place-items: center;
+    color: var(--text-muted);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .run-step .marker::after {
+    content: ""; position: absolute;
+    top: 30px; left: 13px; bottom: -16px;
+    width: 2px;
+    background: var(--border-subtle);
+  }
+  .run-step:last-child .marker::after { display: none; }
+  .run-step.user .marker { background: var(--neutral-200); }
+  .run-step.agent .marker { background: var(--fill-accent-subtle); color: var(--text-accent); }
+  .run-step.tool .marker { background: var(--bg-sunken); }
+  .run-step.error .marker { background: var(--state-danger-bg); color: var(--state-danger); }
+  .run-step .head { display: flex; align-items: center; gap: 6px; font: 500 12px/1 var(--font-sans); }
+  .run-step .head .who { font-weight: 600; color: var(--text-primary); }
+  .run-step .head .when { margin-left: auto; font-family: var(--font-mono); color: var(--text-muted); font-size: 11px; }
+  .run-step .body { font: 400 13px/1.55 var(--font-sans); color: var(--text-secondary); margin-top: 4px; }
+  .run-step .body pre {
+    font: 500 12px/1.5 var(--font-mono);
+    background: var(--bg-sunken);
+    border-radius: var(--r-sm);
+    padding: 8px 10px;
+    margin-top: 6px;
+    color: var(--text-primary);
+    overflow-x: auto;
+  }
+
+  /* §7 Process library */
+  .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px var(--gutter); }
+  .lib-card { padding: 0; overflow: hidden; }
+  .lib-card .topbar { padding: 12px 14px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 8px; }
+  .lib-card .topbar .name { font: 600 14px/1.3 var(--font-sans); color: var(--text-primary); flex: 1; }
+  .lib-card .body { padding: 12px 14px; }
+  .lib-card .desc { font: 400 12px/1.55 var(--font-sans); color: var(--text-secondary); margin-bottom: 12px; }
+  .lib-card .footrow { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border-subtle); background: var(--bg-sunken); }
+  .lib-card .step-graph { display: flex; align-items: center; gap: 4px; margin-bottom: 10px; }
+  .lib-card .step-graph .step { padding: 3px 6px; background: var(--fill-accent-subtle); color: var(--text-accent); border-radius: var(--r-xs); font: 500 10px/1 var(--font-mono); }
+  .lib-card .step-graph .sep { color: var(--border-strong); }
+  .lib-card .badge-type { font: 600 10px/1 var(--font-sans); padding: 2px 6px; border-radius: var(--r-sm); letter-spacing: 0.04em; text-transform: uppercase; }
+  .lib-card .badge-type.det { background: var(--state-success-bg); color: var(--state-success); }
+  .lib-card .badge-type.hyb { background: var(--state-info-bg); color: var(--state-info); }
+  .lib-card .badge-type.prob { background: var(--state-warn-bg); color: var(--state-warn); }
+</style>
+</head>
+<body class="kc-shell">
+
+  <!-- Rail -->
+  <aside class="kc-rail">
+    <div class="kc-rail-logo"><i data-icon="grid"></i></div>
+    <button class="kc-rail-item" title="Home"><i data-icon="home"></i></button>
+    <button class="kc-rail-item" title="HR"><i data-icon="users"></i></button>
+    <button class="kc-rail-item" title="Finance"><i data-icon="wallet"></i></button>
+    <button class="kc-rail-item" title="Inventory"><i data-icon="package"></i></button>
+    <button class="kc-rail-item" title="Procurement"><i data-icon="cart"></i></button>
+    <button class="kc-rail-item" title="Sales"><i data-icon="trend"></i></button>
+    <button class="kc-rail-item" title="CRM"><i data-icon="briefcase"></i></button>
+    <div class="kc-spacer"></div>
+    <button class="kc-rail-item is-active" title="AI Platform" style="color: var(--accent-300);"><i data-icon="bot"></i></button>
+    <button class="kc-rail-item" title="Settings"><i data-icon="settings"></i></button>
+  </aside>
+
+  <!-- Sidebar -->
+  <aside class="kc-side">
+    <div class="kc-side-top">
+      <div class="kc-side-title">AI Platform</div>
+      <span class="kc-side-code">IS-AGENT</span>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Activity</div>
+      <a class="kc-side-item is-active" data-section="inbox"><i data-icon="inbox" class="kc-side-kind"></i><span>Agent inbox</span><span class="kc-side-count">12</span></a>
+      <a class="kc-side-item" data-section="conv"><i data-icon="message" class="kc-side-kind"></i><span>Conversations</span></a>
+      <a class="kc-side-item" data-section="runs"><i data-icon="history" class="kc-side-kind"></i><span>Run history</span></a>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Configure</div>
+      <a class="kc-side-item" data-section="wizard"><i data-icon="wand" class="kc-side-kind"></i><span>AI fields</span><span class="kc-side-count">14</span></a>
+      <a class="kc-side-item" data-section="tools"><i data-icon="zap" class="kc-side-kind"></i><span>Tool catalog</span><span class="kc-side-count">86</span></a>
+      <a class="kc-side-item" data-section="mandates"><i data-icon="shield" class="kc-side-kind"></i><span>Mandates</span></a>
+      <a class="kc-side-item" data-section="library"><i data-icon="cpu" class="kc-side-kind"></i><span>Process library</span></a>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Models</div>
+      <a class="kc-side-item"><span class="kc-mono">haiku-4-5</span></a>
+      <a class="kc-side-item"><span class="kc-mono">sonnet-4-5</span></a>
+      <a class="kc-side-item"><span class="kc-mono">opus-4-5</span><span class="kc-side-count" style="font-size: 9px;">pro</span></a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="kc-shell-main">
+    <header class="kc-topbar">
+      <div class="kc-topbar-left">
+        <button class="kc-tb-btn kc-tb-workspace">
+          <span class="kc-tb-workspace-mark">A</span>
+          <div class="kc-tb-workspace-name"><span>PT Acme Indonesia</span><span class="kc-tb-workspace-env">Production</span></div>
+          <i data-icon="chevron-down"></i>
+        </button>
+        <div class="kc-crumbs">
+          <a href="#">AI Platform</a><span class="kc-crumb-sep">/</span>
+          <span class="kc-crumb-cur" id="crumb">Agent inbox</span>
+        </div>
+      </div>
+      <button class="kc-cmdk"><i data-icon="search"></i><span>Cari atau jalankan…</span><span class="kc-kbd">⌘K</span></button>
+      <div class="kc-topbar-right">
+        <button class="kc-tb-btn"><i data-icon="bot"></i><span class="kc-tb-dot kc-tb-dot-accent">3</span></button>
+        <button class="kc-tb-btn"><i data-icon="bell"></i><span class="kc-tb-dot">8</span></button>
+        <button class="kc-tb-btn kc-tb-user"><div class="kc-avatar kc-avatar-sm">AW</div></button>
+      </div>
+    </header>
+
+    <div class="kc-shell-content" style="display: flex; flex-direction: column;">
+
+      <div class="ai-subnav">
+        <button class="is-active" data-section="inbox"><i data-icon="inbox" class="kc-icon-sm"></i>Agent inbox <span class="count">12</span></button>
+        <button data-section="conv"><i data-icon="message" class="kc-icon-sm"></i>Conversation panel</button>
+        <button data-section="wizard"><i data-icon="wand" class="kc-icon-sm"></i>AI field wizard</button>
+        <button data-section="tools"><i data-icon="zap" class="kc-icon-sm"></i>Tool catalog</button>
+        <button data-section="mandates"><i data-icon="shield" class="kc-icon-sm"></i>Mandates</button>
+        <button data-section="runs"><i data-icon="history" class="kc-icon-sm"></i>Run inspector</button>
+        <button data-section="library"><i data-icon="cpu" class="kc-icon-sm"></i>Process library</button>
+      </div>
+
+      <!-- §1 INBOX -->
+      <section class="ai-section is-active" id="s-inbox" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+        <div class="inbox-wrap" style="flex: 1; min-height: 0;">
+
+          <div class="inbox-list">
+            <div class="inbox-filter">
+              <button class="kc-chip kc-chip-active">All <span class="kc-x">12</span></button>
+              <button class="kc-chip">Pending</button>
+              <button class="kc-chip">Failed</button>
+            </div>
+
+            <div class="inbox-row is-active">
+              <div class="ag warn"><i data-icon="bot"></i></div>
+              <div class="b">
+                <div class="nm">Lead Triager <span class="when">2m</span></div>
+                <div class="desc">4 leads ready — review draft responses</div>
+                <div class="meta"><span class="kc-badge kc-badge-warn" style="font-size: 9px;">Approval</span><span class="kc-badge" style="font-size: 9px;">CRM</span></div>
+              </div>
+            </div>
+            <div class="inbox-row">
+              <div class="ag success"><i data-icon="bot"></i></div>
+              <div class="b">
+                <div class="nm">AR Collector <span class="when">14m</span></div>
+                <div class="desc">Sent 18 reminders, 5 responses</div>
+                <div class="meta"><span class="kc-badge kc-badge-success" style="font-size: 9px;">Done</span><span class="kc-badge" style="font-size: 9px;">Finance</span></div>
+              </div>
+            </div>
+            <div class="inbox-row">
+              <div class="ag danger"><i data-icon="alert"></i></div>
+              <div class="b">
+                <div class="nm">Compliance Auditor <span class="when">1h</span></div>
+                <div class="desc">Failed: timeout at CoreTax DJP endpoint (5x)</div>
+                <div class="meta"><span class="kc-badge kc-badge-danger" style="font-size: 9px;">Failed</span><span class="kc-badge" style="font-size: 9px;">Finance</span></div>
+              </div>
+            </div>
+            <div class="inbox-row">
+              <div class="ag"><i data-icon="bot"></i></div>
+              <div class="b">
+                <div class="nm">Cash Forecaster <span class="when">3h</span></div>
+                <div class="desc">Running 28 scenarios · 4 of 6 hours elapsed</div>
+                <div class="meta"><span class="kc-badge kc-badge-info" style="font-size: 9px;"><span class="kc-dot"></span>Running</span></div>
+              </div>
+            </div>
+            <div class="inbox-row">
+              <div class="ag success"><i data-icon="bot"></i></div>
+              <div class="b">
+                <div class="nm">Onboarding Buddy <span class="when">Yesterday</span></div>
+                <div class="desc">Sent welcome packet to Joko Kusuma + 2 others</div>
+                <div class="meta"><span class="kc-badge kc-badge-success" style="font-size: 9px;">Done</span><span class="kc-badge" style="font-size: 9px;">HR</span></div>
+              </div>
+            </div>
+            <div class="inbox-row">
+              <div class="ag"><i data-icon="bot"></i></div>
+              <div class="b">
+                <div class="nm">Expense Categorizer <span class="when">Yesterday</span></div>
+                <div class="desc">Categorized 41 expenses · 3 uncertain</div>
+                <div class="meta"><span class="kc-badge kc-badge-warn" style="font-size: 9px;">Review</span><span class="kc-badge" style="font-size: 9px;">Expense</span></div>
+              </div>
+            </div>
+            <div class="inbox-row">
+              <div class="ag warn"><i data-icon="bot"></i></div>
+              <div class="b">
+                <div class="nm">PO Approver Assistant <span class="when">2d</span></div>
+                <div class="desc">Flagged PO-2026-0091 for senior review (over budget)</div>
+                <div class="meta"><span class="kc-badge kc-badge-warn" style="font-size: 9px;">Approval</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Run view -->
+          <div class="run-view">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+              <div class="kc-avatar kc-avatar-lg" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot"></i></div>
+              <div style="flex: 1;">
+                <div style="font: 700 18px/1.2 var(--font-sans); letter-spacing: -0.02em; color: var(--text-primary);">Lead Triager</div>
+                <div style="font: 400 13px/1.4 var(--font-sans); color: var(--text-muted); margin-top: 2px;">Triages new leads, drafts personalized first responses · <span class="kc-badge" style="font-size: 9px;">autonomous</span></div>
+              </div>
+              <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="history"></i> History</button>
+              <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="settings"></i> Configure</button>
+            </div>
+
+            <div class="kc-banner" style="margin-bottom: 16px;">
+              <i data-icon="info"></i>
+              <div><strong>4 leads ready for review.</strong> Drafts are below — approve to send, edit to refine, or skip to send tomorrow.</div>
+            </div>
+
+            <div class="kc-card" style="margin-bottom: 12px;">
+              <div class="kc-card-head">
+                <div>
+                  <div class="kc-card-title">Lead · Bayu Wicaksono · CV Permata Indah</div>
+                  <div class="kc-card-sub">From web form · 09:02 · scored <strong style="color: var(--state-success);">High (0.84)</strong></div>
+                </div>
+                <span class="kc-badge kc-badge-info"><span class="kc-dot"></span>Draft ready</span>
+              </div>
+              <div class="kc-card-body">
+                <div class="reason">
+                  <div class="h"><i data-icon="sparkles" class="kc-icon-sm"></i>Reasoning</div>
+                  Company has 50+ employees from LinkedIn enrichment. Inquiry is about HR + Payroll, matches our ICP. Bayu signed up with corporate email and explicitly mentioned wanting BPJS integration — strong signal.
+                </div>
+                <div style="margin-top: 12px; padding: 12px; background: var(--bg-sunken); border-radius: var(--r-md); font-size: 13px; line-height: 1.55; color: var(--text-primary);">
+                  <div style="font-weight: 600; margin-bottom: 4px;">Selamat siang Pak Bayu,</div>
+                  Terima kasih telah menghubungi KantorCore. Saya melihat CV Permata Indah tertarik dengan modul HR &amp; Payroll dengan integrasi BPJS — ini area yang kami siapkan khusus untuk perusahaan menengah Indonesia.<br><br>
+                  Apakah Anda bersedia diskusi 30 menit minggu ini? Saya bisa demo bagaimana sinkronisasi BPJS Ketenagakerjaan kami bekerja dengan struktur 50+ karyawan…
+                </div>
+                <div style="display: flex; gap: 6px; margin-top: 12px;">
+                  <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="check"></i>Approve &amp; send</button>
+                  <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="edit"></i>Edit draft</button>
+                  <button class="kc-btn kc-btn-ghost kc-btn-sm">Send tomorrow</button>
+                  <div class="kc-spacer"></div>
+                  <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="x"></i>Skip</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="kc-card" style="margin-bottom: 12px;">
+              <div class="kc-card-head">
+                <div>
+                  <div class="kc-card-title">Lead · Nadia Pratama · PT Tirta Mandala</div>
+                  <div class="kc-card-sub">From referral · scored <strong>Medium (0.51)</strong></div>
+                </div>
+                <span class="kc-badge kc-badge-info"><span class="kc-dot"></span>Draft ready</span>
+              </div>
+              <div class="kc-card-body">
+                <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.55;">Selamat pagi Bu Nadia, terima kasih sudah direkomendasikan oleh tim PT Anugerah Bumi…</div>
+                <div style="display: flex; gap: 6px; margin-top: 12px;">
+                  <button class="kc-btn kc-btn-primary kc-btn-sm">Approve</button>
+                  <button class="kc-btn kc-btn-secondary kc-btn-sm">Edit</button>
+                  <button class="kc-btn kc-btn-ghost kc-btn-sm">Skip</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="kc-card" style="margin-bottom: 12px;">
+              <div class="kc-card-head"><div><div class="kc-card-title">Lead · Cipta Karya · UD Karya Bahari</div><div class="kc-card-sub">From web form · scored <strong style="color: var(--text-muted);">Low (0.18) · marked spam</strong></div></div></div>
+            </div>
+
+            <div class="kc-card">
+              <div class="kc-card-head"><div><div class="kc-card-title">Lead · Sari Wulandari · individual</div><div class="kc-card-sub">From web form · scored <strong>Medium (0.45)</strong></div></div></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- §2 CONVERSATION -->
+      <section class="ai-section" id="s-conv">
+        <div class="conv-wrap">
+          <div class="conv-thread">
+            <div class="conv-head">
+              <i data-icon="bot" style="color: var(--text-accent);"></i>
+              <div class="title">Ask AR Collector</div>
+              <span class="ctx">Context: INV-2026-0179 · PT Acme</span>
+              <div class="kc-spacer"></div>
+              <span class="kc-mono kc-muted" style="font-size: 11px;">haiku-4-5</span>
+              <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more"></i></button>
+            </div>
+            <div class="conv-msgs">
+
+              <div class="kc-agent-msg">
+                <div class="kc-avatar kc-avatar-md">AW</div>
+                <div class="kc-agent-msg-body">
+                  <div class="kc-agent-msg-head"><span class="kc-agent-msg-name">Andi Wijaya</span><span class="kc-agent-msg-meta">2 min ago</span></div>
+                  <div class="kc-agent-msg-content">Why is this invoice still overdue? What's the latest with the customer?</div>
+                </div>
+              </div>
+
+              <div class="kc-agent-msg kc-agent-msg-agent">
+                <div class="kc-avatar kc-avatar-md" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>
+                <div class="kc-agent-msg-body">
+                  <div class="kc-agent-msg-head"><span class="kc-agent-msg-name">AR Collector</span><span class="kc-badge kc-badge-info" style="font-size: 9px;">autonomous</span><span class="kc-agent-msg-meta">just now</span></div>
+                  <div class="kc-agent-msg-content">Invoice INV-2026-0179 (Rp 145.000.000) jatuh tempo 12 Mei — sekarang 11 hari overdue. Customer (Ibu Sinta, PT Acme) sudah dikirim <strong>3 reminders</strong>: 14 Mei, 18 Mei, 22 Mei. Email terakhir dibuka tapi tidak dibalas.</div>
+                  <div class="kc-tool-call" style="margin-top: 10px;">
+                    <div class="kc-tool-call-head"><i data-icon="zap" class="kc-icon-sm"></i><span class="kc-tool-call-name">finance.invoice.read</span><span class="kc-tool-call-status" style="color: var(--state-success);">✓ Done</span></div>
+                    <div class="kc-tool-call-args">{ "id": "INV-2026-0179", "include": ["reminders", "payments"] }</div>
+                  </div>
+                  <div class="kc-tool-call" style="margin-top: 6px;">
+                    <div class="kc-tool-call-head"><i data-icon="zap" class="kc-icon-sm"></i><span class="kc-tool-call-name">finance.customer.get_history</span><span class="kc-tool-call-status" style="color: var(--state-success);">✓ 28 rows</span></div>
+                    <div class="kc-tool-call-args">{ "customer_id": "cust_001", "since": "2024-01-01" }</div>
+                  </div>
+                  <div class="reason">
+                    <div class="h"><i data-icon="sparkles" class="kc-icon-sm"></i>Reasoning</div>
+                    Customer has 28 historical invoices, 26 paid on time, 2 late (8 days and 14 days). Current 11-day delay is within their normal late pattern. Suggested action: send escalation email with proposed payment plan; do not block future orders yet.
+                  </div>
+                </div>
+              </div>
+
+              <div class="kc-agent-msg">
+                <div class="kc-avatar kc-avatar-md">AW</div>
+                <div class="kc-agent-msg-body">
+                  <div class="kc-agent-msg-head"><span class="kc-agent-msg-name">Andi Wijaya</span><span class="kc-agent-msg-meta">just now</span></div>
+                  <div class="kc-agent-msg-content">Offer them Net 45 for the remaining balance, and CC me.</div>
+                </div>
+              </div>
+
+              <div class="kc-agent-msg kc-agent-msg-agent">
+                <div class="kc-avatar kc-avatar-md" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>
+                <div class="kc-agent-msg-body">
+                  <div class="kc-agent-msg-head"><span class="kc-agent-msg-name">AR Collector</span><span class="kc-agent-msg-meta">drafting…</span></div>
+                  <div class="kc-agent-msg-content">Confirming before I send:</div>
+                  <div style="background: var(--bg-sunken); border-radius: var(--r-md); padding: 10px 12px; margin-top: 6px; font-size: 13px;">
+                    <div><span class="kc-muted">To:</span> sinta@acme.id</div>
+                    <div><span class="kc-muted">CC:</span> andi@acme.id</div>
+                    <div><span class="kc-muted">Subject:</span> INV-2026-0179 · Proposed Net 45 extension</div>
+                  </div>
+                  <div class="diff-row plus" style="margin-top: 8px;">+ Will update INV-2026-0179.terms: "Net 30" → "Net 45"</div>
+                  <div class="diff-row plus">+ Will set INV-2026-0179.new_due_date: 2026-05-27</div>
+                  <div style="display: flex; gap: 6px; margin-top: 10px;">
+                    <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="send"></i>Send &amp; apply</button>
+                    <button class="kc-btn kc-btn-secondary kc-btn-sm">Preview email</button>
+                    <button class="kc-btn kc-btn-ghost kc-btn-sm">Cancel</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="conv-input">
+              <textarea placeholder="Ask AR Collector anything about this record…"></textarea>
+              <div class="row">
+                <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="paperclip" class="kc-icon-sm"></i></button>
+                <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="sparkles" class="kc-icon-sm"></i>Suggest</button>
+                <div class="kc-spacer"></div>
+                <span class="kc-mono kc-muted" style="font-size: 11px;">2,148 / 8K tokens</span>
+                <button class="kc-btn kc-btn-primary kc-btn-xs">Send <span class="kc-kbd" style="background: transparent; border: 0;">⌘↵</span></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Context aside -->
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="kc-card ctx-card">
+              <div class="kc-card-title">Context · Record</div>
+              <div class="ctx-fields" style="margin-top: 8px;">
+                <div class="row"><span class="k">Type</span><span class="v">Invoice</span></div>
+                <div class="row"><span class="k">ID</span><span class="v kc-mono">INV-2026-0179</span></div>
+                <div class="row"><span class="k">Customer</span><span class="v">PT Acme Indonesia</span></div>
+                <div class="row"><span class="k">Total</span><span class="v kc-mono">Rp 145.000.000</span></div>
+                <div class="row"><span class="k">Status</span><span class="v"><span class="kc-badge kc-badge-danger" style="font-size: 10px;">Overdue 11d</span></span></div>
+              </div>
+            </div>
+            <div class="kc-card ctx-card">
+              <div class="kc-card-title">Mandates · this agent</div>
+              <ul style="list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 6px;">
+                <li style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><i data-icon="check" style="color: var(--state-success);" class="kc-icon-sm"></i> Read invoices, customers</li>
+                <li style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><i data-icon="check" style="color: var(--state-success);" class="kc-icon-sm"></i> Send emails on behalf of owner</li>
+                <li style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><i data-icon="check" style="color: var(--state-success);" class="kc-icon-sm"></i> Update invoice terms (within ±15 days)</li>
+                <li style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted);"><i data-icon="x" class="kc-icon-sm"></i> Apply credit, refund</li>
+              </ul>
+            </div>
+            <div class="kc-card ctx-card">
+              <div class="kc-card-title">This session</div>
+              <div class="ctx-fields" style="margin-top: 8px;">
+                <div class="row"><span class="k">Started</span><span class="v kc-mono">14:02</span></div>
+                <div class="row"><span class="k">Tokens</span><span class="v kc-mono">2.1K / 8K</span></div>
+                <div class="row"><span class="k">Tool calls</span><span class="v kc-mono">2</span></div>
+                <div class="row"><span class="k">Cost</span><span class="v kc-mono">Rp 84</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- §3 AI FIELD WIZARD -->
+      <section class="ai-section" id="s-wizard">
+        <div class="wizard">
+          <div class="wizard-head">
+            <i data-icon="wand" style="color: var(--text-accent);"></i>
+            <div><div style="font: 700 16px/1.2 var(--font-sans); color: var(--text-primary); letter-spacing: -0.01em;">New AI field</div><div style="font: 400 12px/1.4 var(--font-sans); color: var(--text-muted);">deal.health_summary on <span class="kc-mono">CRM.Deal</span></div></div>
+            <div class="kc-spacer"></div>
+            <button class="kc-btn kc-btn-ghost kc-btn-sm">Save as template</button>
+          </div>
+          <div class="wizard-steps">
+            <div class="wstep done"><span class="num">✓</span>Type</div>
+            <span class="wstep-sep">›</span>
+            <div class="wstep done"><span class="num">✓</span>Inputs</div>
+            <span class="wstep-sep">›</span>
+            <div class="wstep active"><span class="num">3</span>Prompt &amp; model</div>
+            <span class="wstep-sep">›</span>
+            <div class="wstep"><span class="num">4</span>Trigger</div>
+            <span class="wstep-sep">›</span>
+            <div class="wstep"><span class="num">5</span>Store</div>
+          </div>
+
+          <div class="wizard-body">
+            <div class="wizard-left">
+              <div class="kc-field" style="margin-bottom: 14px;">
+                <label class="kc-field-label">Prompt template <span class="kc-muted">(use {{ }} to inject inputs)</span></label>
+                <textarea class="kc-textarea" style="min-height: 200px; font-family: var(--font-mono); font-size: 12px;">You are an analyst for a B2B sales pipeline.
+
+Given the deal context below, write a 2-3 sentence summary covering:
+- where the deal stands today
+- the top blocker or risk
+- recommended next action
+
+Context:
+- Stage: {{ deal.stage }}
+- Value: {{ deal.value }}
+- Days in current stage: {{ deal.days_in_stage }}
+- Last activity: {{ deal.last_activity_at }}
+- Notes: {{ deal.notes_recent }}
+- Account: {{ deal.account.name }} ({{ deal.account.size }} employees)
+
+Be specific. Skip pleasantries.</textarea>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="kc-field">
+                  <label class="kc-field-label">Model</label>
+                  <select class="kc-select">
+                    <option>haiku-4-5 — fast, low cost</option>
+                    <option selected>sonnet-4-5 — balanced</option>
+                    <option>opus-4-5 — best reasoning</option>
+                  </select>
+                </div>
+                <div class="kc-field">
+                  <label class="kc-field-label">Max tokens</label>
+                  <input class="kc-input kc-mono" value="180">
+                </div>
+              </div>
+            </div>
+
+            <div class="wizard-right">
+              <div class="preview">
+                <div class="h"><i data-icon="play" class="kc-icon-sm"></i>Preview · using deal_8841</div>
+                <div style="margin-bottom: 12px;">
+                  Deal is at <strong>Negotiation</strong> stage at Rp 178.000.000, but has stalled 16 days since the last meeting. The blocker is finance approval on the requested 8% volume discount. Next action: schedule a 30-min call with the finance contact (Ibu Sinta) to walk through the discount math and unblock approval before month-end.
+                </div>
+                <div class="kc-mono kc-muted" style="font-size: 11px;">142 tokens · 1.2s · est. cost Rp 12 per run</div>
+                <button class="kc-btn kc-btn-secondary kc-btn-xs" style="margin-top: 10px;"><i data-icon="refresh"></i>Re-run preview</button>
+                <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="copy"></i>Try another record</button>
+              </div>
+
+              <div style="margin-top: 14px; font: 400 12px/1.5 var(--font-sans); color: var(--text-muted);">
+                <strong style="color: var(--text-primary);">Inputs detected:</strong> 6 fields from <code>CRM.Deal</code>, 2 from <code>CRM.Account</code>. Field references are sanitized; no PII leaves the workspace.
+              </div>
+            </div>
+          </div>
+
+          <div class="wizard-foot">
+            <button class="kc-btn kc-btn-ghost"><i data-icon="chevron-left"></i> Back</button>
+            <button class="kc-btn kc-btn-primary">Continue · Trigger →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- §4 TOOLS -->
+      <section class="ai-section" id="s-tools">
+        <div class="kc-page-head">
+          <div><div class="kc-page-title">Tool catalog</div><div class="kc-page-sub">86 registered tools across 14 modules · pick what each agent can call</div></div>
+          <div class="kc-spacer"></div>
+          <div class="kc-page-actions">
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="filter"></i> Module</button>
+            <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="plus"></i> Register tool</button>
+          </div>
+        </div>
+
+        <div class="tool-grid">
+          <div class="kc-card tool-card">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;"><i data-icon="zap" style="color: var(--text-accent);"></i><span class="kc-mono" style="font-size: 14px; font-weight: 600;">finance.invoice.send_reminder</span></div>
+            <div class="ds">Send a dunning reminder email for an invoice using a registered template.</div>
+            <div class="stats"><span>IS-FIN</span><span>·</span><span>scope: customer-data</span><span>·</span><span>184 invocations / 7d</span></div>
+          </div>
+          <div class="kc-card tool-card">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;"><i data-icon="zap" style="color: var(--text-accent);"></i><span class="kc-mono" style="font-size: 14px; font-weight: 600;">crm.lead.score</span></div>
+            <div class="ds">Compute and persist a 0–1 lead score using current ML model.</div>
+            <div class="stats"><span>IS-CRM</span><span>·</span><span>scope: read-only</span><span>·</span><span>2,402 / 7d</span></div>
+          </div>
+          <div class="kc-card tool-card">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;"><i data-icon="zap" style="color: var(--text-accent);"></i><span class="kc-mono" style="font-size: 14px; font-weight: 600;">bpjs.employee.sync</span></div>
+            <div class="ds">Synchronize an employee's BPJS Kesehatan + Ketenagakerjaan record.</div>
+            <div class="stats"><span>IS-HR</span><span>·</span><span>scope: government</span><span>·</span><span>218 / 7d</span></div>
+          </div>
+          <div class="kc-card tool-card">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;"><i data-icon="zap" style="color: var(--text-accent);"></i><span class="kc-mono" style="font-size: 14px; font-weight: 600;">corepay.tax.submit_efaktur</span></div>
+            <div class="ds">Submit an e-Faktur batch to CoreTax DJP. Returns receipt + DJP reference.</div>
+            <div class="stats"><span>IS-FIN</span><span>·</span><span>scope: government</span><span>·</span><span>14 / 7d</span></div>
+          </div>
+          <div class="kc-card tool-card">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;"><i data-icon="zap" style="color: var(--text-accent);"></i><span class="kc-mono" style="font-size: 14px; font-weight: 600;">sales.order.discount_request</span></div>
+            <div class="ds">Submit a discount &gt; default-threshold for approval. Auto-tagged with reason.</div>
+            <div class="stats"><span>IS-SALES</span><span>·</span><span>scope: write</span><span>·</span><span>32 / 7d</span></div>
+          </div>
+          <div class="kc-card tool-card">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;"><i data-icon="zap" style="color: var(--text-accent);"></i><span class="kc-mono" style="font-size: 14px; font-weight: 600;">docs.kms.search</span></div>
+            <div class="ds">Search the public + private knowledge base. Returns titles + excerpts.</div>
+            <div class="stats"><span>IS-DOCS</span><span>·</span><span>scope: read-only</span><span>·</span><span>1,144 / 7d</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- §5 MANDATES -->
+      <section class="ai-section" id="s-mandates">
+        <div class="kc-page-head">
+          <div><div class="kc-page-title">Mandates</div><div class="kc-page-sub">Per-agent, per-entity grants · auditable, revocable</div></div>
+          <div class="kc-spacer"></div>
+          <div class="kc-page-actions">
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="history"></i> Audit log</button>
+            <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="plus"></i> Grant mandate</button>
+          </div>
+        </div>
+
+        <div class="kc-content">
+          <div class="kc-card" style="overflow: hidden;">
+            <table class="kc-table mandate-table kc-table-compact">
+              <thead><tr><th>Agent</th><th>Entity</th><th>Actions</th><th>Conditions</th><th>Granted by</th><th>Expires</th><th></th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>AR Collector</div></td>
+                  <td><span class="kc-mono">FIN.Invoice</span></td>
+                  <td><span class="kc-badge">read</span> <span class="kc-badge kc-badge-info">send_reminder</span> <span class="kc-badge kc-badge-warn">update_terms ±15d</span></td>
+                  <td class="kc-mono" style="font-size: 11px;">customer.tier ≠ 'enterprise'</td>
+                  <td>Lestari Putri</td>
+                  <td class="kc-mono">2026-12-31</td>
+                  <td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td>
+                </tr>
+                <tr>
+                  <td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>AR Collector</div></td>
+                  <td><span class="kc-mono">CRM.Customer</span></td>
+                  <td><span class="kc-badge">read</span></td>
+                  <td class="kc-mono kc-muted" style="font-size: 11px;">—</td>
+                  <td>Lestari Putri</td>
+                  <td class="kc-mono">2026-12-31</td>
+                  <td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td>
+                </tr>
+                <tr>
+                  <td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>Lead Triager</div></td>
+                  <td><span class="kc-mono">CRM.Lead</span></td>
+                  <td><span class="kc-badge">read</span> <span class="kc-badge kc-badge-info">score</span> <span class="kc-badge kc-badge-warn">draft_reply (queue)</span></td>
+                  <td class="kc-mono kc-muted" style="font-size: 11px;">—</td>
+                  <td>Andi Wijaya</td>
+                  <td class="kc-mono">never</td>
+                  <td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td>
+                </tr>
+                <tr>
+                  <td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>Compliance Auditor</div></td>
+                  <td><span class="kc-mono">FIN.* (read-only)</span></td>
+                  <td><span class="kc-badge">read</span> <span class="kc-badge kc-badge-info">flag</span></td>
+                  <td class="kc-mono" style="font-size: 11px;">never_send_email</td>
+                  <td>Lestari Putri</td>
+                  <td class="kc-mono">never</td>
+                  <td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td>
+                </tr>
+                <tr>
+                  <td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div>Onboarding Buddy</div></td>
+                  <td><span class="kc-mono">HR.Employee</span></td>
+                  <td><span class="kc-badge">read</span> <span class="kc-badge kc-badge-info">send_email</span></td>
+                  <td class="kc-mono kc-muted" style="font-size: 11px;">employee.status = 'new'</td>
+                  <td>Andi Wijaya</td>
+                  <td class="kc-mono">never</td>
+                  <td><button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="more" class="kc-icon-sm"></i></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- §6 RUN INSPECTOR -->
+      <section class="ai-section" id="s-runs">
+        <div class="kc-page-head">
+          <div>
+            <div class="kc-page-title">Run · <span class="kc-mono kc-muted" style="font-weight: 500; font-size: 14px;">run_4189 · AR Collector</span></div>
+            <div class="kc-page-sub">23 May 2026 09:12 · 8.4s · 1,184 input + 412 output tokens · est. Rp 84</div>
+          </div>
+          <div class="kc-spacer"></div>
+          <div class="kc-page-actions">
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="download"></i> Export</button>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="refresh"></i> Re-run</button>
+            <button class="kc-btn kc-btn-primary kc-btn-sm">View source agent →</button>
+          </div>
+        </div>
+
+        <div class="run-grid">
+          <div class="run-timeline">
+            <div class="run-step user">
+              <div class="marker"><i data-icon="user"></i></div>
+              <div>
+                <div class="head"><span class="who">Andi Wijaya</span><span class="kc-muted">started run</span><span class="when">09:12:04</span></div>
+                <div class="body">Trigger: <code>cron · every 4h on weekdays</code></div>
+              </div>
+            </div>
+            <div class="run-step tool">
+              <div class="marker"><i data-icon="zap" style="color: var(--text-accent);"></i></div>
+              <div>
+                <div class="head"><span class="who kc-mono">finance.invoice.list</span><span class="kc-badge kc-badge-success" style="font-size: 9px;">23 rows</span><span class="when">09:12:05 · 142ms</span></div>
+                <pre>{ "status": "overdue", "days_overdue_gt": 7 }</pre>
+              </div>
+            </div>
+            <div class="run-step agent">
+              <div class="marker"><i data-icon="bot"></i></div>
+              <div>
+                <div class="head"><span class="who">AR Collector</span><span class="kc-muted">thinking</span><span class="when">09:12:05 · 4.2s</span></div>
+                <div class="body">
+                  Of 23 overdue invoices, 18 have not had a reminder in 7+ days and have customer.allow_email = true. I'll send reminders to those 18 using <code>dunning-1</code> template, with personalization for each customer's last interaction date.
+                </div>
+              </div>
+            </div>
+            <div class="run-step tool">
+              <div class="marker"><i data-icon="zap" style="color: var(--text-accent);"></i></div>
+              <div>
+                <div class="head"><span class="who kc-mono">finance.invoice.send_reminder</span><span class="kc-badge kc-badge-success" style="font-size: 9px;">18 ok</span><span class="when">09:12:09 · 3.1s</span></div>
+                <pre>{ "ids": ["INV-...0179", "INV-...0173", "INV-...0168", ...], "template": "dunning-1" }</pre>
+              </div>
+            </div>
+            <div class="run-step agent">
+              <div class="marker"><i data-icon="check-circle" style="color: var(--state-success);"></i></div>
+              <div>
+                <div class="head"><span class="who">AR Collector</span><span class="kc-muted">finished</span><span class="when">09:12:12</span></div>
+                <div class="body">Sent 18 reminders. Skipped 5 (recent reminder &lt; 7d). Run summary posted to Agent Inbox.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="kc-card ctx-card">
+              <div class="kc-card-title">Outcome</div>
+              <div class="ctx-fields" style="margin-top: 8px;">
+                <div class="row"><span class="k">Status</span><span class="v"><span class="kc-badge kc-badge-success" style="font-size: 10px;">Success</span></span></div>
+                <div class="row"><span class="k">Records changed</span><span class="v kc-mono">18 invoices · 18 chatter events</span></div>
+                <div class="row"><span class="k">Side effects</span><span class="v kc-mono">18 emails sent</span></div>
+                <div class="row"><span class="k">Reversible?</span><span class="v">No · emails delivered</span></div>
+              </div>
+            </div>
+            <div class="kc-card ctx-card">
+              <div class="kc-card-title">Tokens &amp; cost</div>
+              <div class="ctx-fields" style="margin-top: 8px;">
+                <div class="row"><span class="k">Model</span><span class="v kc-mono">haiku-4-5</span></div>
+                <div class="row"><span class="k">Input</span><span class="v kc-mono">1,184</span></div>
+                <div class="row"><span class="k">Output</span><span class="v kc-mono">412</span></div>
+                <div class="row"><span class="k">Cost</span><span class="v kc-mono">Rp 84</span></div>
+                <div class="row"><span class="k">Latency</span><span class="v kc-mono">8.4s total</span></div>
+              </div>
+            </div>
+            <div class="kc-card ctx-card">
+              <div class="kc-card-title">Tools used · 2</div>
+              <div style="font: 500 12px/1.6 var(--font-mono); color: var(--text-secondary); margin-top: 6px;">
+                · finance.invoice.list<br>
+                · finance.invoice.send_reminder
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- §7 PROCESS LIBRARY -->
+      <section class="ai-section" id="s-library">
+        <div class="kc-page-head">
+          <div><div class="kc-page-title">Process Library <span class="kc-mono kc-muted" style="font-weight: 500; font-size: 14px;">IS-FLOW</span></div><div class="kc-page-sub">Composable workflows · deterministic, probabilistic, or hybrid</div></div>
+          <div class="kc-spacer"></div>
+          <div class="kc-page-actions">
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="filter"></i> Type</button>
+            <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="plus"></i> New process</button>
+          </div>
+        </div>
+
+        <div class="lib-grid">
+          <div class="kc-card lib-card">
+            <div class="topbar">
+              <i data-icon="zap" style="color: var(--state-success);"></i>
+              <div class="name">Auto-overdue invoices</div>
+              <span class="badge-type det">det</span>
+            </div>
+            <div class="body">
+              <div class="desc">Mark invoices as overdue when due_date passes; notify owner.</div>
+              <div class="step-graph">
+                <span class="step">cron 0 *</span><span class="sep">→</span>
+                <span class="step">find</span><span class="sep">→</span>
+                <span class="step">update</span><span class="sep">→</span>
+                <span class="step">notify</span>
+              </div>
+            </div>
+            <div class="footrow">
+              <span class="kc-muted" style="font-size: 11px;">Runs daily · 1,841 invoices touched</span>
+              <div class="kc-spacer"></div>
+              <button class="kc-btn kc-btn-secondary kc-btn-xs"><i data-icon="play" class="kc-icon-sm"></i> Run</button>
+            </div>
+          </div>
+
+          <div class="kc-card lib-card">
+            <div class="topbar">
+              <i data-icon="zap" style="color: var(--state-info);"></i>
+              <div class="name">Dunning sequence</div>
+              <span class="badge-type hyb">hybrid</span>
+            </div>
+            <div class="body">
+              <div class="desc">Send reminder, escalate to AI for personalized followup if no response.</div>
+              <div class="step-graph">
+                <span class="step">scheduled</span><span class="sep">→</span>
+                <span class="step">email</span><span class="sep">→</span>
+                <span class="step">wait 7d</span><span class="sep">→</span>
+                <span class="step">ai.draft</span><span class="sep">→</span>
+                <span class="step">approve</span>
+              </div>
+            </div>
+            <div class="footrow">
+              <span class="kc-muted" style="font-size: 11px;">Last run 14m ago · 18 / 23 sent</span>
+              <div class="kc-spacer"></div>
+              <button class="kc-btn kc-btn-secondary kc-btn-xs"><i data-icon="play" class="kc-icon-sm"></i> Run</button>
+            </div>
+          </div>
+
+          <div class="kc-card lib-card">
+            <div class="topbar">
+              <i data-icon="zap" style="color: var(--state-warn);"></i>
+              <div class="name">Lead → first response</div>
+              <span class="badge-type prob">probabilistic</span>
+            </div>
+            <div class="body">
+              <div class="desc">Triage a new lead, score it, draft a personalized response for review.</div>
+              <div class="step-graph">
+                <span class="step">on lead.create</span><span class="sep">→</span>
+                <span class="step">enrich</span><span class="sep">→</span>
+                <span class="step">ai.score</span><span class="sep">→</span>
+                <span class="step">ai.draft</span><span class="sep">→</span>
+                <span class="step">queue</span>
+              </div>
+            </div>
+            <div class="footrow">
+              <span class="kc-muted" style="font-size: 11px;">4 drafts awaiting review</span>
+              <div class="kc-spacer"></div>
+              <button class="kc-btn kc-btn-secondary kc-btn-xs"><i data-icon="play" class="kc-icon-sm"></i> Run</button>
+            </div>
+          </div>
+
+          <div class="kc-card lib-card">
+            <div class="topbar">
+              <i data-icon="zap" style="color: var(--state-success);"></i>
+              <div class="name">BPJS · employee sync</div>
+              <span class="badge-type det">det</span>
+            </div>
+            <div class="body">
+              <div class="desc">Sync all active employees with BPJS Kesehatan + Ketenagakerjaan twice daily.</div>
+              <div class="step-graph">
+                <span class="step">cron 12h</span><span class="sep">→</span>
+                <span class="step">find new</span><span class="sep">→</span>
+                <span class="step">bpjs.sync</span><span class="sep">→</span>
+                <span class="step">log</span>
+              </div>
+            </div>
+            <div class="footrow">
+              <span class="kc-muted" style="font-size: 11px;">Last 09:00 · 218 records · 0 errors</span>
+              <div class="kc-spacer"></div>
+              <button class="kc-btn kc-btn-secondary kc-btn-xs"><i data-icon="play" class="kc-icon-sm"></i> Run</button>
+            </div>
+          </div>
+
+          <div class="kc-card lib-card">
+            <div class="topbar">
+              <i data-icon="zap" style="color: var(--state-info);"></i>
+              <div class="name">PO &gt; 50jt approval</div>
+              <span class="badge-type hyb">hybrid</span>
+            </div>
+            <div class="body">
+              <div class="desc">Route POs above Rp 50jt to senior approver with AI risk summary.</div>
+              <div class="step-graph">
+                <span class="step">on po.create</span><span class="sep">→</span>
+                <span class="step">check.budget</span><span class="sep">→</span>
+                <span class="step">ai.summarize</span><span class="sep">→</span>
+                <span class="step">approve</span>
+              </div>
+            </div>
+            <div class="footrow">
+              <span class="kc-muted" style="font-size: 11px;">7d: 12 routed · 11 approved, 1 rejected</span>
+              <div class="kc-spacer"></div>
+              <button class="kc-btn kc-btn-secondary kc-btn-xs"><i data-icon="play" class="kc-icon-sm"></i> Run</button>
+            </div>
+          </div>
+
+          <div class="kc-card lib-card">
+            <div class="topbar">
+              <i data-icon="zap" style="color: var(--state-warn);"></i>
+              <div class="name">Expense triage</div>
+              <span class="badge-type prob">probabilistic</span>
+            </div>
+            <div class="body">
+              <div class="desc">Categorize expenses from receipt images, flag anomalies for review.</div>
+              <div class="step-graph">
+                <span class="step">on expense.create</span><span class="sep">→</span>
+                <span class="step">ocr</span><span class="sep">→</span>
+                <span class="step">ai.classify</span><span class="sep">→</span>
+                <span class="step">queue?</span>
+              </div>
+            </div>
+            <div class="footrow">
+              <span class="kc-muted" style="font-size: 11px;">Last 24h: 41 processed · 3 uncertain</span>
+              <div class="kc-spacer"></div>
+              <button class="kc-btn kc-btn-secondary kc-btn-xs"><i data-icon="play" class="kc-icon-sm"></i> Run</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+<script src="../icons.js"></script>
+<script>
+  // Section switching
+  document.querySelectorAll('.ai-subnav button, .kc-side-item[data-section]').forEach(b => {
+    b.addEventListener('click', () => {
+      const sec = b.getAttribute('data-section');
+      if (!sec) return;
+      document.querySelectorAll('.ai-section').forEach(s => s.classList.toggle('is-active', s.id === 's-' + sec));
+      document.querySelectorAll('.ai-subnav button').forEach(x => x.classList.toggle('is-active', x.getAttribute('data-section') === sec));
+      document.querySelectorAll('.kc-side-item[data-section]').forEach(x => x.classList.toggle('is-active', x.getAttribute('data-section') === sec));
+      const map = { inbox: 'Agent inbox', conv: 'Conversation panel', wizard: 'AI field wizard', tools: 'Tool catalog', mandates: 'Mandates', runs: 'Run inspector', library: 'Process library' };
+      document.getElementById('crumb').textContent = map[sec] || 'AI Platform';
+    });
+  });
+</script>
+</body></html>

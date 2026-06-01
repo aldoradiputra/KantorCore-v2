@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<title>KantorCore — Shell</title>
+<link rel="stylesheet" href="../design-tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="_shell.css">
+<style>
+  body { margin: 0; overflow: hidden; }
+
+  /* Workspace grid for the home dashboard */
+  .home-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; padding: 16px var(--gutter); }
+  .home-grid .col { display: flex; flex-direction: column; gap: 16px; }
+
+  /* KPI tiles */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi { padding: 14px 16px; }
+  .kpi .lbl { font: 500 11px/1 var(--font-sans); color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .kpi .lbl .kc-icon { width: 12px; height: 12px; }
+  .kpi .val { font: 700 22px/1.1 var(--font-sans); letter-spacing: -0.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .kpi .dlt { font: 500 11px/1 var(--font-sans); color: var(--state-success); margin-top: 4px; }
+  .kpi .dlt.down { color: var(--state-danger); }
+
+  /* AI Inbox card */
+  .ai-inbox-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); }
+  .ai-inbox-row:last-child { border-bottom: 0; }
+  .ai-inbox-row .agent {
+    width: 28px; height: 28px;
+    border-radius: var(--r-md);
+    background: var(--fill-accent-subtle);
+    color: var(--text-accent);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .ai-inbox-row .body { flex: 1; min-width: 0; }
+  .ai-inbox-row .name { font: 600 13px/1.3 var(--font-sans); color: var(--text-primary); }
+  .ai-inbox-row .desc { font: 400 12px/1.4 var(--font-sans); color: var(--text-muted); margin-top: 2px; }
+  .ai-inbox-row .meta { font: 500 11px/1 var(--font-mono); color: var(--text-muted); }
+
+  /* Activity timeline */
+  .activity-row { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; padding: 8px 14px; align-items: start; }
+  .activity-row + .activity-row { border-top: 1px solid var(--border-subtle); }
+  .activity-row .body { font: 400 12.5px/1.5 var(--font-sans); color: var(--text-secondary); min-width: 0; }
+  .activity-row .body strong { color: var(--text-primary); font-weight: 600; }
+  .activity-row .when { font: 500 11px/1 var(--font-mono); color: var(--text-muted); }
+
+  /* Command palette overlay (floating preview) */
+  .palette-stage {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-command);
+    background: var(--bg-overlay);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 96px;
+  }
+  .palette-stage.is-open { display: flex; }
+  .palette {
+    width: 560px;
+    max-width: 92vw;
+    background: var(--bg-elevated);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+  }
+  .palette .input-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .palette .input-row input {
+    flex: 1; border: 0; outline: 0; background: transparent;
+    font: 400 15px/1 var(--font-sans);
+    color: var(--text-primary);
+  }
+  .palette .input-row .kc-icon { color: var(--text-muted); }
+  .palette .results { max-height: 420px; overflow: auto; padding: 4px; }
+  .palette-section { font: 600 10px/1 var(--font-sans); color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; padding: 12px 12px 6px; }
+  .palette-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--r-sm);
+    font: 400 13px/1.3 var(--font-sans);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .palette-item:hover, .palette-item.is-focus { background: var(--fill-subtle); }
+  .palette-item.is-focus { background: var(--fill-accent-subtle); }
+  .palette-item .pi-icon { width: 16px; height: 16px; color: var(--text-muted); flex-shrink: 0; }
+  .palette-item .pi-name { font-weight: 500; }
+  .palette-item .pi-meta { margin-left: auto; font: 500 11px/1 var(--font-mono); color: var(--text-muted); }
+  .palette-item.is-focus .pi-icon { color: var(--text-accent); }
+  .palette-foot { padding: 8px 14px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 12px; font: 500 11px/1 var(--font-sans); color: var(--text-muted); background: var(--bg-sunken); }
+
+  /* Notifications panel (slide-in) */
+  .notif-panel {
+    position: fixed;
+    top: var(--topbar-h);
+    right: 0;
+    width: 380px;
+    bottom: 0;
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-popover);
+    display: none;
+    flex-direction: column;
+  }
+  .notif-panel.is-open { display: flex; }
+  .notif-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .notif-head .title { font: 700 14px/1 var(--font-sans); color: var(--text-primary); }
+  .notif-tabs { display: flex; padding: 8px 8px 0; gap: 4px; border-bottom: 1px solid var(--border-subtle); }
+  .notif-tab {
+    padding: 6px 10px; border-radius: var(--r-sm);
+    font: 500 12px/1 var(--font-sans);
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .notif-tab.is-active { color: var(--text-primary); border-bottom-color: var(--accent-500); font-weight: 600; }
+  .notif-tab .count { font: 500 10px/1 var(--font-mono); padding: 1px 5px; background: var(--fill-subtle); border-radius: var(--r-full); margin-left: 4px; color: var(--text-muted); }
+  .notif-list { flex: 1; overflow: auto; }
+  .notif-item { padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); display: grid; grid-template-columns: 32px 1fr; gap: 10px; cursor: pointer; }
+  .notif-item:hover { background: var(--fill-subtle); }
+  .notif-item.unread { background: var(--fill-accent-subtle); }
+  .notif-item .ico { width: 32px; height: 32px; border-radius: var(--r-md); background: var(--fill-subtle); display: grid; place-items: center; color: var(--text-muted); }
+  .notif-item .ttl { font: 600 13px/1.4 var(--font-sans); color: var(--text-primary); }
+  .notif-item .desc { font: 400 12px/1.5 var(--font-sans); color: var(--text-secondary); margin-top: 2px; }
+  .notif-item .when { font: 500 11px/1 var(--font-mono); color: var(--text-muted); margin-top: 4px; }
+</style>
+</head>
+<body class="kc-shell">
+
+  <!-- ── Rail ────────────────────────────────────────────────── -->
+  <aside class="kc-rail">
+    <div class="kc-rail-logo"><i data-icon="grid"></i></div>
+    <button class="kc-rail-item is-active" title="Workspace"><i data-icon="home"></i></button>
+    <button class="kc-rail-item" title="HR"><i data-icon="users"></i></button>
+    <button class="kc-rail-item" title="Finance"><i data-icon="wallet"></i></button>
+    <button class="kc-rail-item" title="Inventory"><i data-icon="package"></i></button>
+    <button class="kc-rail-item" title="Procurement"><i data-icon="cart"></i></button>
+    <button class="kc-rail-item" title="Sales"><i data-icon="trend"></i></button>
+    <button class="kc-rail-item" title="CRM"><i data-icon="briefcase"></i></button>
+    <button class="kc-rail-item" title="Projects"><i data-icon="project"></i></button>
+    <button class="kc-rail-item" title="Timesheets"><i data-icon="clock"></i></button>
+    <button class="kc-rail-item" title="Expenses"><i data-icon="receipt"></i></button>
+    <button class="kc-rail-item" title="Chat"><i data-icon="message"></i></button>
+    <button class="kc-rail-item" title="Omnichannel"><i data-icon="inbox"></i></button>
+    <button class="kc-rail-item" title="Helpdesk"><i data-icon="help"></i></button>
+    <button class="kc-rail-item" title="Documents"><i data-icon="file"></i></button>
+    <div class="kc-spacer"></div>
+    <button class="kc-rail-item" title="Settings"><i data-icon="settings"></i></button>
+    <button class="kc-rail-item" title="Help"><i data-icon="help"></i></button>
+  </aside>
+
+  <!-- ── Secondary sidebar ─────────────────────────────────── -->
+  <aside class="kc-side">
+    <div class="kc-side-top">
+      <div class="kc-side-title">Workspace</div>
+      <span class="kc-side-code">IS-PLAT</span>
+    </div>
+
+    <div class="kc-side-group">
+      <div class="kc-side-h">Today</div>
+      <a class="kc-side-item is-active" href="#"><i data-icon="home" class="kc-side-kind"></i><span>Home</span></a>
+      <a class="kc-side-item" href="#"><i data-icon="inbox" class="kc-side-kind"></i><span>Inbox</span><span class="kc-side-count">8</span></a>
+      <a class="kc-side-item" href="#"><i data-icon="check-circle" class="kc-side-kind"></i><span>My tasks</span><span class="kc-side-count">5</span></a>
+      <a class="kc-side-item" href="#"><i data-icon="check" class="kc-side-kind"></i><span>Approvals</span><span class="kc-side-count">12</span></a>
+      <a class="kc-side-item" href="#"><i data-icon="bot" class="kc-side-kind kc-side-kind-ai"></i><span>Agent inbox</span><span class="kc-side-count">3</span></a>
+    </div>
+
+    <div class="kc-side-group">
+      <div class="kc-side-h">Recent</div>
+      <a class="kc-side-item" href="#"><i data-icon="invoice" class="kc-side-kind"></i><span>INV-2026-0179</span></a>
+      <a class="kc-side-item" href="#"><i data-icon="cart" class="kc-side-kind"></i><span>PO-2026-0091</span></a>
+      <a class="kc-side-item" href="#"><i data-icon="building-2" class="kc-side-kind"></i><span>PT Maju Bersama</span></a>
+      <a class="kc-side-item" href="#"><i data-icon="briefcase" class="kc-side-kind"></i><span>Deal · Anugerah ‑ Q2</span></a>
+    </div>
+
+    <div class="kc-side-group">
+      <div class="kc-side-h">Saved views</div>
+      <a class="kc-side-item" href="#"><i data-icon="pin" class="kc-side-pin"></i><span>Overdue invoices</span><span class="kc-side-count">23</span></a>
+      <a class="kc-side-item" href="#"><i data-icon="pin" class="kc-side-pin"></i><span>This-quarter deals</span></a>
+      <a class="kc-side-item" href="#"><span>Stalled &gt; 14d</span></a>
+    </div>
+  </aside>
+
+  <!-- ── Main column ──────────────────────────────────────── -->
+  <div class="kc-shell-main">
+
+    <header class="kc-topbar">
+      <div class="kc-topbar-left">
+        <button class="kc-tb-btn kc-tb-workspace">
+          <span class="kc-tb-workspace-mark">A</span>
+          <div class="kc-tb-workspace-name">
+            <span>PT Acme Indonesia</span>
+            <span class="kc-tb-workspace-env">Production</span>
+          </div>
+          <i data-icon="chevron-down"></i>
+        </button>
+      </div>
+      <button class="kc-cmdk" id="open-palette">
+        <i data-icon="search"></i>
+        <span>Cari atau jalankan…</span>
+        <span class="kc-kbd">⌘K</span>
+      </button>
+      <div class="kc-topbar-right">
+        <button class="kc-tb-btn" title="Agent inbox"><i data-icon="bot"></i><span class="kc-tb-dot kc-tb-dot-accent">3</span></button>
+        <button class="kc-tb-btn" id="open-notif" title="Notifications"><i data-icon="bell"></i><span class="kc-tb-dot">8</span></button>
+        <button class="kc-tb-btn kc-tb-user"><div class="kc-avatar kc-avatar-sm">AW</div></button>
+      </div>
+    </header>
+
+    <div class="kc-shell-content">
+
+      <div class="kc-page-head">
+        <div>
+          <div class="kc-page-title">Selamat pagi, Andi.</div>
+          <div class="kc-page-sub">Senin, 23 Mei 2026 · 4 hal yang perlu perhatian Anda hari ini.</div>
+        </div>
+        <div class="kc-spacer"></div>
+        <div class="kc-page-actions">
+          <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="sparkles"></i>Ringkas hari ini</button>
+          <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="plus"></i>Buat</button>
+        </div>
+      </div>
+
+      <!-- KPI strip -->
+      <div style="padding: 16px var(--gutter) 0;">
+        <div class="kpi-row">
+          <div class="kc-card kpi"><div class="lbl"><i data-icon="wallet"></i>Posisi kas</div><div class="val">Rp 8.420.000.000</div><div class="dlt">▲ Rp 240 jt minggu ini</div></div>
+          <div class="kc-card kpi"><div class="lbl"><i data-icon="invoice"></i>AR overdue</div><div class="val" style="color: var(--state-danger);">Rp 70.180.000</div><div class="dlt down">▲ 4 faktur baru</div></div>
+          <div class="kc-card kpi"><div class="lbl"><i data-icon="users"></i>Karyawan aktif</div><div class="val">218</div><div class="dlt">▲ 3 onboarding minggu ini</div></div>
+          <div class="kc-card kpi"><div class="lbl"><i data-icon="trend"></i>Pipeline</div><div class="val">Rp 1,84 mi</div><div class="dlt">7 deals at Negotiation</div></div>
+        </div>
+      </div>
+
+      <div class="home-grid">
+        <div class="col">
+          <!-- Pending approvals -->
+          <div class="kc-card">
+            <div class="kc-card-head">
+              <div><div class="kc-card-title">Persetujuan tertunda</div><div class="kc-card-sub">12 menunggu Anda</div></div>
+              <button class="kc-btn kc-btn-ghost kc-btn-sm">Lihat semua</button>
+            </div>
+            <table class="kc-table kc-table-compact">
+              <thead><tr><th>Dari</th><th>Item</th><th>Modul</th><th class="kc-th-num">Jumlah</th><th>Umur</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs">DR</div>Dewi Rahmawati</div></td><td class="kc-mono">PO-2026-0091</td><td><span class="kc-tag">IS-PURCH</span></td><td class="kc-td-num kc-mono">Rp 12.450.000</td><td class="kc-mono kc-muted">2h</td><td><button class="kc-btn kc-btn-secondary kc-btn-xs">Tinjau</button></td></tr>
+                <tr><td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs" style="background: var(--accent-100); color: var(--accent-700);">SS</div>Surya Saputra</div></td><td class="kc-mono">EXP-2026-0418</td><td><span class="kc-tag">IS-EXP</span></td><td class="kc-td-num kc-mono">Rp 3.890.000</td><td class="kc-mono kc-muted">5h</td><td><button class="kc-btn kc-btn-secondary kc-btn-xs">Tinjau</button></td></tr>
+                <tr><td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs">RH</div>Rizky Hidayat</div></td><td class="kc-mono">INV-2026-0179</td><td><span class="kc-tag">IS-FIN</span></td><td class="kc-td-num kc-mono">Rp 145.000.000</td><td class="kc-mono" style="color: var(--state-warn);">1d</td><td><button class="kc-btn kc-btn-secondary kc-btn-xs">Tinjau</button></td></tr>
+                <tr><td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs" style="background: var(--accent-200); color: var(--accent-800);">PS</div>Putri Setiawan</div></td><td>Cuti tahunan</td><td><span class="kc-tag">IS-HR</span></td><td class="kc-td-num kc-mono kc-muted">5 hari</td><td class="kc-mono kc-muted">3h</td><td><button class="kc-btn kc-btn-secondary kc-btn-xs">Tinjau</button></td></tr>
+                <tr><td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs">FN</div>Fitri Nurhaliza</div></td><td class="kc-mono">SO-2026-0218 · diskon 8%</td><td><span class="kc-tag">IS-SALES</span></td><td class="kc-td-num kc-mono">Rp 197.580.000</td><td class="kc-mono kc-muted">6h</td><td><button class="kc-btn kc-btn-secondary kc-btn-xs">Tinjau</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Recent activity -->
+          <div class="kc-card">
+            <div class="kc-card-head">
+              <div><div class="kc-card-title">Aktivitas terbaru</div><div class="kc-card-sub">Lintas modul · 5 menit terakhir</div></div>
+              <span class="kc-badge kc-badge-success"><span class="kc-dot"></span>Live · 14 online</span>
+            </div>
+            <div>
+              <div class="activity-row"><div class="kc-avatar kc-avatar-xs" style="background: var(--accent-100); color: var(--accent-700);">DR</div><div class="body"><strong>Dewi Rahmawati</strong> mengajukan <strong>PO-2026-0091</strong> untuk persetujuan Anda.</div><span class="when">2m</span></div>
+              <div class="activity-row"><div class="kc-avatar kc-avatar-xs" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot" class="kc-icon-sm"></i></div><div class="body"><strong>AR Collector</strong> kirim 18 reminder email pakai template <code>dunning-1</code>.</div><span class="when">14m</span></div>
+              <div class="activity-row"><div class="kc-avatar kc-avatar-xs">FN</div><div class="body"><strong>Fitri Nurhaliza</strong> menutup deal <strong>PT Anugerah Bumi · Q2</strong> &mdash; <span class="kc-mono">Rp 178.000.000</span></div><span class="when">38m</span></div>
+              <div class="activity-row"><div class="kc-avatar kc-avatar-xs" style="background: var(--neutral-200);"><i data-icon="settings" class="kc-icon-sm"></i></div><div class="body"><strong>Sistem</strong> menyelesaikan sinkronisasi BPJS Ketenagakerjaan · 218 karyawan.</div><span class="when">1h</span></div>
+              <div class="activity-row"><div class="kc-avatar kc-avatar-xs">RH</div><div class="body"><strong>Rizky Hidayat</strong> menambah catatan pada faktur <strong>INV-2026-0179</strong>.</div><span class="when">2h</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <!-- AI Inbox -->
+          <div class="kc-card">
+            <div class="kc-card-head">
+              <div><div class="kc-card-title">Agent Inbox</div><div class="kc-card-sub">3 menunggu peninjauan</div></div>
+              <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="external" class="kc-icon-sm"></i></button>
+            </div>
+            <div>
+              <div class="ai-inbox-row">
+                <div class="agent"><i data-icon="bot"></i></div>
+                <div class="body"><div class="name">AR Collector</div><div class="desc">Selesai &middot; 18 reminders, 5 vendor menjawab</div></div>
+                <span class="kc-badge kc-badge-success" style="font-size: 10px;">Done</span>
+              </div>
+              <div class="ai-inbox-row">
+                <div class="agent"><i data-icon="bot"></i></div>
+                <div class="body"><div class="name">Lead Triager</div><div class="desc">Menunggu persetujuan untuk membalas 4 lead baru</div></div>
+                <span class="kc-badge kc-badge-warn" style="font-size: 10px;">Approval</span>
+              </div>
+              <div class="ai-inbox-row">
+                <div class="agent" style="background: var(--state-danger-bg); color: var(--state-danger);"><i data-icon="alert"></i></div>
+                <div class="body"><div class="name">Compliance Auditor</div><div class="desc">Gagal akses endpoint CoreTax (timeout)</div></div>
+                <span class="kc-badge kc-badge-danger" style="font-size: 10px;">Failed</span>
+              </div>
+              <div class="ai-inbox-row">
+                <div class="agent"><i data-icon="bot"></i></div>
+                <div class="body"><div class="name">Cash Forecaster</div><div class="desc">Memproses 28 model skenario · 4 dari 6 jam</div></div>
+                <span class="kc-badge kc-badge-info" style="font-size: 10px;"><span class="kc-dot"></span>Running</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick start (first-run remnant) -->
+          <div class="kc-card">
+            <div class="kc-card-head"><div><div class="kc-card-title">Selesaikan setup</div><div class="kc-card-sub">3 dari 5 langkah</div></div><span class="kc-mono" style="font-size: 11px; color: var(--text-muted);">60%</span></div>
+            <div style="padding: 14px 16px;">
+              <div style="height: 4px; background: var(--bg-sunken); border-radius: 2px; overflow: hidden; margin-bottom: 14px;"><div style="width: 60%; height: 100%; background: var(--accent-500);"></div></div>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><i data-icon="check-circle" style="color: var(--state-success);"></i>Buat tenant · <span class="kc-muted">selesai</span></div>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><i data-icon="check-circle" style="color: var(--state-success);"></i>Sambungkan rekening bank · <span class="kc-muted">selesai</span></div>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><i data-icon="check-circle" style="color: var(--state-success);"></i>Atur Chart of Accounts · <span class="kc-muted">selesai</span></div>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary);"><i data-icon="circle" style="color: var(--accent-500);"></i>Hubungkan CoreTax DJP <span style="margin-left: auto;"><button class="kc-btn kc-btn-primary kc-btn-xs">Mulai</button></span></div>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted);"><i data-icon="circle"></i>Undang anggota tim</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Today panel -->
+          <div class="kc-card">
+            <div class="kc-card-head"><div class="kc-card-title">Hari ini</div><span class="kc-mono kc-muted" style="font-size: 11px;">Sen 23 Mei</span></div>
+            <div style="padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: start;"><span class="kc-mono" style="font-size: 12px; color: var(--text-muted);">09:00</span><div><div style="font-weight: 600; font-size: 13px;">Standup mingguan</div><div class="kc-caption">Engineering · Google Meet</div></div></div>
+              <div style="display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: start;"><span class="kc-mono" style="font-size: 12px; color: var(--text-muted);">11:00</span><div><div style="font-weight: 600; font-size: 13px;">Review Q2 forecast</div><div class="kc-caption">Lestari, Andi</div></div></div>
+              <div style="display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: start;"><span class="kc-mono" style="font-size: 12px; color: var(--text-muted);">14:30</span><div><div style="font-weight: 600; font-size: 13px;">Demo · PT Anugerah Bumi</div><div class="kc-caption">Closing call · Fitri</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Command palette overlay -->
+  <div class="palette-stage" id="palette">
+    <div class="palette">
+      <div class="input-row">
+        <i data-icon="search"></i>
+        <input value="invoice" autofocus>
+        <span class="kc-kbd">esc</span>
+      </div>
+      <div class="results">
+        <div class="palette-section">Records · 4</div>
+        <div class="palette-item is-focus">
+          <i data-icon="invoice" class="pi-icon"></i>
+          <div><div class="pi-name">INV-2026-0179</div><div style="font-size: 11px; color: var(--text-muted);">PT Acme Indonesia · overdue 11d</div></div>
+          <span class="pi-meta">↵</span>
+        </div>
+        <div class="palette-item">
+          <i data-icon="invoice" class="pi-icon"></i>
+          <div><div class="pi-name">INV-2026-0184</div><div style="font-size: 11px; color: var(--text-muted);">PT Maju Bersama · sent</div></div>
+        </div>
+        <div class="palette-item">
+          <i data-icon="invoice" class="pi-icon"></i>
+          <div><div class="pi-name">INV-2026-0173</div><div style="font-size: 11px; color: var(--text-muted);">CV Bintang Timur · overdue 21d</div></div>
+        </div>
+
+        <div class="palette-section">Actions</div>
+        <div class="palette-item">
+          <i data-icon="plus" class="pi-icon"></i>
+          <span class="pi-name">Buat invoice baru</span>
+          <span class="pi-meta">C I</span>
+        </div>
+        <div class="palette-item">
+          <i data-icon="download" class="pi-icon"></i>
+          <span class="pi-name">Ekspor invoice ke CSV</span>
+        </div>
+
+        <div class="palette-section">Agents</div>
+        <div class="palette-item">
+          <i data-icon="bot" class="pi-icon" style="color: var(--text-accent);"></i>
+          <span class="pi-name">Jalankan "AR Collector" untuk semua overdue</span>
+          <span class="pi-meta">A R</span>
+        </div>
+
+        <div class="palette-section">Pages</div>
+        <div class="palette-item">
+          <i data-icon="settings" class="pi-icon"></i>
+          <span class="pi-name">Settings · Workspace branding</span>
+        </div>
+        <div class="palette-item">
+          <i data-icon="users" class="pi-icon"></i>
+          <span class="pi-name">Settings · Users &amp; groups</span>
+        </div>
+      </div>
+      <div class="palette-foot">
+        <span><span class="kc-kbd">↑↓</span> navigate</span>
+        <span><span class="kc-kbd">↵</span> open</span>
+        <span><span class="kc-kbd">⌘↵</span> open in new tab</span>
+        <span style="margin-left: auto;"><span class="kc-kbd">esc</span> close</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications panel -->
+  <div class="notif-panel" id="notif">
+    <div class="notif-head">
+      <div class="title">Notifications</div>
+      <div class="kc-spacer"></div>
+      <button class="kc-btn kc-btn-ghost kc-btn-xs">Mark all read</button>
+      <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="settings" class="kc-icon-sm"></i></button>
+    </div>
+    <div class="notif-tabs">
+      <div class="notif-tab is-active">All<span class="count">8</span></div>
+      <div class="notif-tab">Mentions<span class="count">2</span></div>
+      <div class="notif-tab">Approvals<span class="count">5</span></div>
+      <div class="notif-tab">Agents<span class="count">1</span></div>
+    </div>
+    <div class="notif-list">
+      <div class="notif-item unread">
+        <div class="ico" style="background: var(--fill-accent-subtle); color: var(--text-accent);"><i data-icon="bot"></i></div>
+        <div><div class="ttl">AR Collector finished a run</div><div class="desc">Sent 18 reminders, 5 customers responded.</div><div class="when">2 min ago</div></div>
+      </div>
+      <div class="notif-item unread">
+        <div class="ico"><i data-icon="message"></i></div>
+        <div><div class="ttl">Dewi mentioned you in PO-2026-0091</div><div class="desc">"@Andi please check the over-budget line for IT hire."</div><div class="when">8 min ago</div></div>
+      </div>
+      <div class="notif-item">
+        <div class="ico"><i data-icon="check"></i></div>
+        <div><div class="ttl">Approval needed · INV-2026-0179</div><div class="desc">Rp 145.000.000 · over your default threshold.</div><div class="when">2 hours ago</div></div>
+      </div>
+      <div class="notif-item">
+        <div class="ico" style="background: var(--state-warn-bg); color: var(--state-warn);"><i data-icon="warning"></i></div>
+        <div><div class="ttl">CoreTax DJP sync failed</div><div class="desc">Timeout contacting upstream endpoint. Will retry in 30 min.</div><div class="when">3 hours ago</div></div>
+      </div>
+      <div class="notif-item">
+        <div class="ico"><i data-icon="trend"></i></div>
+        <div><div class="ttl">Deal closed · PT Anugerah Bumi</div><div class="desc">Fitri Nurhaliza · Rp 178.000.000</div><div class="when">Yesterday</div></div>
+      </div>
+    </div>
+  </div>
+
+<script src="../icons.js"></script>
+<script>
+  // Keyboard shortcuts: ⌘K for palette, ⌘. for notifications, esc to close.
+  const palette = document.getElementById('palette');
+  const notif   = document.getElementById('notif');
+  document.getElementById('open-palette').addEventListener('click', () => palette.classList.add('is-open'));
+  document.getElementById('open-notif').addEventListener('click', () => notif.classList.toggle('is-open'));
+  palette.addEventListener('click', e => { if (e.target === palette) palette.classList.remove('is-open'); });
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); palette.classList.add('is-open'); }
+    if (e.key === 'Escape') { palette.classList.remove('is-open'); notif.classList.remove('is-open'); }
+  });
+</script>
+</body></html>

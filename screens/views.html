@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="utf-8">
+<title>KantorCore — Views</title>
+<link rel="stylesheet" href="../design-tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="_shell.css">
+<style>
+  body { margin: 0; overflow: hidden; }
+  .view { display: none; flex-direction: column; min-height: 0; flex: 1; }
+  .view.is-active { display: flex; }
+
+  /* List view */
+  .list-toolbar {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    padding: 10px var(--gutter);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .list-toolbar .kc-spacer { flex: 1; }
+
+  .list-table-wrap { overflow: auto; background: var(--bg-surface); flex: 1; }
+  .list-table th { background: var(--bg-surface); }
+  .list-table .stage {
+    display: inline-flex; align-items: center;
+    font: 500 12px/1 var(--font-sans);
+    padding: 3px 8px; border-radius: var(--r-full);
+  }
+  .stage-q { background: var(--neutral-200); color: var(--text-secondary); }
+  :root[data-theme="dark"] .stage-q { background: var(--neutral-700); }
+  .stage-p { background: var(--state-info-bg); color: var(--state-info); }
+  .stage-n { background: var(--state-warn-bg); color: var(--state-warn); }
+  .stage-w { background: var(--state-success-bg); color: var(--state-success); }
+
+  /* Kanban */
+  .kanban-wrap {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 280px;
+    gap: 12px;
+    padding: 16px var(--gutter);
+    overflow-x: auto;
+    flex: 1;
+    align-items: start;
+    background: var(--bg-canvas);
+  }
+  .kan-col {
+    background: var(--bg-sunken);
+    border-radius: var(--r-lg);
+    padding: 8px;
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 100%;
+  }
+  .kan-col-head {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px;
+  }
+  .kan-col-title { font: 600 12px/1 var(--font-sans); color: var(--text-primary); letter-spacing: 0.02em; }
+  .kan-col-meta { font: 500 11px/1 var(--font-mono); color: var(--text-muted); }
+  .kan-col-spacer { flex: 1; }
+  .kan-col-wip { font: 500 10px/1 var(--font-mono); padding: 2px 5px; border-radius: var(--r-sm); background: var(--bg-surface); color: var(--text-muted); }
+  .kan-col-wip.over { background: var(--state-warn-bg); color: var(--state-warn); }
+
+  .kan-cards { display: flex; flex-direction: column; gap: 6px; overflow: auto; padding: 2px; }
+  .kan-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: 10px 12px;
+    box-shadow: var(--shadow-xs);
+    cursor: grab;
+    transition: box-shadow var(--d-fast);
+  }
+  .kan-card:hover { box-shadow: var(--shadow-sm); border-color: var(--border-strong); }
+  .kan-card.is-dragging { box-shadow: var(--shadow-lg); transform: rotate(-1.5deg); }
+  .kan-card .ttl { font: 600 13px/1.4 var(--font-sans); color: var(--text-primary); margin-bottom: 4px; }
+  .kan-card .sub { font: 400 12px/1.5 var(--font-sans); color: var(--text-muted); margin-bottom: 8px; }
+  .kan-card .row { display: flex; align-items: center; gap: 6px; }
+  .kan-card .val { font: 600 13px/1 var(--font-sans); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .kan-card .row .kc-spacer { flex: 1; }
+  .kan-card .meta-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+
+  /* Calendar */
+  .cal-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; background: var(--bg-surface); }
+  .cal-toolbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px var(--gutter);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .cal-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 1fr;
+    overflow: auto;
+  }
+  .cal-cell {
+    border-right: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 6px 8px;
+    min-height: 96px;
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--bg-surface);
+  }
+  .cal-cell.muted { background: var(--bg-sunken); color: var(--text-muted); }
+  .cal-cell .num { font: 500 12px/1 var(--font-sans); color: var(--text-secondary); }
+  .cal-cell .num.today { background: var(--accent-500); color: white; padding: 2px 6px; border-radius: var(--r-full); align-self: flex-start; font-weight: 600; }
+  .cal-header {
+    display: contents;
+  }
+  .cal-header .h {
+    padding: 8px 8px;
+    font: 600 10px/1 var(--font-sans);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+  }
+
+  .cal-evt {
+    font: 500 11px/1.3 var(--font-sans);
+    padding: 2px 6px;
+    border-radius: var(--r-xs);
+    background: var(--fill-accent-subtle);
+    color: var(--text-accent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .cal-evt.success { background: var(--state-success-bg); color: var(--state-success); }
+  .cal-evt.warn { background: var(--state-warn-bg); color: var(--state-warn); }
+  .cal-evt.danger { background: var(--state-danger-bg); color: var(--state-danger); }
+  .cal-evt.muted { background: var(--bg-sunken); color: var(--text-muted); }
+
+  /* Pivot */
+  .pivot-wrap { padding: 16px var(--gutter); flex: 1; overflow: auto; background: var(--bg-canvas); display: flex; flex-direction: column; gap: 16px; }
+  .pivot-controls { display: flex; gap: 12px; align-items: center; padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--r-md); }
+  .pivot-table th, .pivot-table td { text-align: right; }
+  .pivot-table th:first-child, .pivot-table td:first-child { text-align: left; }
+  .pivot-table .row-total td, .pivot-table .col-total {
+    background: var(--bg-sunken);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .pivot-bar { display: inline-block; height: 6px; background: var(--accent-500); border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+</style>
+</head>
+<body class="kc-shell">
+
+  <!-- Rail -->
+  <aside class="kc-rail">
+    <div class="kc-rail-logo"><i data-icon="grid"></i></div>
+    <button class="kc-rail-item" title="Home"><i data-icon="home"></i></button>
+    <button class="kc-rail-item" title="HR"><i data-icon="users"></i></button>
+    <button class="kc-rail-item" title="Finance"><i data-icon="wallet"></i></button>
+    <button class="kc-rail-item" title="Inventory"><i data-icon="package"></i></button>
+    <button class="kc-rail-item" title="Procurement"><i data-icon="cart"></i></button>
+    <button class="kc-rail-item" title="Sales"><i data-icon="trend"></i></button>
+    <button class="kc-rail-item is-active" title="CRM"><i data-icon="briefcase"></i></button>
+    <div class="kc-spacer"></div>
+    <button class="kc-rail-item" title="Settings"><i data-icon="settings"></i></button>
+  </aside>
+
+  <!-- Sidebar -->
+  <aside class="kc-side">
+    <div class="kc-side-top">
+      <div class="kc-side-title">CRM</div>
+      <span class="kc-side-code">IS-CRM</span>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Pipeline</div>
+      <a class="kc-side-item is-active" href="#"><span>Deals</span><span class="kc-side-count">42</span></a>
+      <a class="kc-side-item" href="#"><span>Leads</span><span class="kc-side-count">14</span></a>
+      <a class="kc-side-item" href="#"><span>Companies</span></a>
+      <a class="kc-side-item" href="#"><span>Contacts</span></a>
+    </div>
+    <div class="kc-side-group">
+      <div class="kc-side-h">Saved views</div>
+      <a class="kc-side-item" href="#"><i data-icon="pin" class="kc-side-pin"></i><span>My pipeline</span></a>
+      <a class="kc-side-item" href="#"><i data-icon="pin" class="kc-side-pin"></i><span>Closing this Q</span></a>
+      <a class="kc-side-item" href="#"><span>Stalled &gt; 14d</span></a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="kc-shell-main">
+    <header class="kc-topbar">
+      <div class="kc-topbar-left">
+        <button class="kc-tb-btn kc-tb-workspace">
+          <span class="kc-tb-workspace-mark">A</span>
+          <div class="kc-tb-workspace-name"><span>PT Acme Indonesia</span><span class="kc-tb-workspace-env">Production</span></div>
+          <i data-icon="chevron-down"></i>
+        </button>
+        <div class="kc-crumbs">
+          <a href="#">CRM</a><span class="kc-crumb-sep">/</span>
+          <span class="kc-crumb-cur">Deals</span>
+        </div>
+      </div>
+      <button class="kc-cmdk"><i data-icon="search"></i><span>Cari atau jalankan…</span><span class="kc-kbd">⌘K</span></button>
+      <div class="kc-topbar-right">
+        <button class="kc-tb-btn"><i data-icon="bot"></i><span class="kc-tb-dot kc-tb-dot-accent">3</span></button>
+        <button class="kc-tb-btn"><i data-icon="bell"></i><span class="kc-tb-dot">8</span></button>
+        <button class="kc-tb-btn kc-tb-user"><div class="kc-avatar kc-avatar-sm">AW</div></button>
+      </div>
+    </header>
+
+    <div class="kc-shell-content" style="display: flex; flex-direction: column;">
+
+      <div class="kc-page-head">
+        <div>
+          <div class="kc-page-title">Deals</div>
+          <div class="kc-page-sub">42 active · pipeline Rp 1.84 mi · close rate 31%</div>
+        </div>
+        <div class="kc-spacer"></div>
+        <div class="kc-page-actions">
+          <div class="kc-seg">
+            <button class="kc-seg-opt kc-seg-opt-active" data-view="list"><i data-icon="list" class="kc-icon-sm"></i> List</button>
+            <button class="kc-seg-opt" data-view="kanban"><i data-icon="kanban" class="kc-icon-sm"></i> Kanban</button>
+            <button class="kc-seg-opt" data-view="calendar"><i data-icon="calendar" class="kc-icon-sm"></i> Calendar</button>
+            <button class="kc-seg-opt" data-view="pivot"><i data-icon="pivot" class="kc-icon-sm"></i> Pivot</button>
+          </div>
+          <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="download"></i>Export</button>
+          <button class="kc-btn kc-btn-primary kc-btn-sm"><i data-icon="plus"></i>New deal</button>
+        </div>
+      </div>
+
+      <!-- ── LIST ───────────────────────────────────────────── -->
+      <section class="view is-active" id="v-list">
+        <div class="list-toolbar">
+          <button class="kc-chip kc-chip-active"><i data-icon="filter" class="kc-icon-sm"></i>Stage ≠ Closed-lost <span class="kc-x">×</span></button>
+          <button class="kc-chip kc-chip-active">Owner: AW, FN, HP <span class="kc-x">×</span></button>
+          <button class="kc-chip kc-chip-active">Close date: this Q <span class="kc-x">×</span></button>
+          <button class="kc-chip"><i data-icon="plus" class="kc-icon-sm"></i>Filter</button>
+          <span style="font: 500 11px/1 var(--font-sans); color: var(--text-muted); margin-left: 12px;">|</span>
+          <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="star" class="kc-icon-sm"></i> Save as view</button>
+          <div class="kc-spacer"></div>
+          <span class="kc-mono kc-muted" style="font-size: 11px;">42 of 87</span>
+          <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="sort" class="kc-icon-sm"></i></button>
+          <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="columns" class="kc-icon-sm"></i></button>
+          <div class="kc-seg">
+            <button class="kc-seg-opt">Compact</button>
+            <button class="kc-seg-opt kc-seg-opt-active">Cozy</button>
+          </div>
+        </div>
+
+        <div class="list-table-wrap">
+          <table class="kc-table list-table">
+            <thead>
+              <tr>
+                <th style="width: 28px;"><input type="checkbox" class="kc-check"></th>
+                <th>Deal</th>
+                <th>Stage</th>
+                <th>Account</th>
+                <th>Owner</th>
+                <th class="kc-th-num">Value</th>
+                <th>Close date</th>
+                <th>AI score</th>
+                <th>Last activity</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><input type="checkbox" class="kc-check"></td><td><strong>PT Anugerah Bumi · Q2</strong><div class="kc-caption">Closing call</div></td><td><span class="stage stage-w">Closed-won</span></td><td>PT Anugerah Bumi</td><td><div class="kc-avatar kc-avatar-xs">FN</div></td><td class="kc-td-num kc-mono">Rp 178.000.000</td><td class="kc-mono">22 May</td><td><span class="kc-badge kc-badge-success">High · 0.84</span></td><td class="kc-mono kc-muted">38m</td></tr>
+              <tr><td><input type="checkbox" class="kc-check"></td><td><strong>PT Maju Bersama · ERP upgrade</strong><div class="kc-caption">2 demos remaining</div></td><td><span class="stage stage-n">Negotiation</span></td><td>PT Maju Bersama</td><td><div class="kc-avatar kc-avatar-xs">FN</div></td><td class="kc-td-num kc-mono">Rp 248.000.000</td><td class="kc-mono">30 May</td><td><span class="kc-badge kc-badge-info">High · 0.72</span></td><td class="kc-mono kc-muted">2h</td></tr>
+              <tr><td><input type="checkbox" class="kc-check"></td><td><strong>CV Bintang Timur · IS-HR</strong></td><td><span class="stage stage-n">Negotiation</span></td><td>CV Bintang Timur</td><td><div class="kc-avatar kc-avatar-xs">HP</div></td><td class="kc-td-num kc-mono">Rp 86.500.000</td><td class="kc-mono">31 May</td><td><span class="kc-badge kc-badge-info">Med · 0.58</span></td><td class="kc-mono kc-muted">1d</td></tr>
+              <tr><td><input type="checkbox" class="kc-check"></td><td><strong>PT Sumber Rejeki · IS-FIN</strong></td><td><span class="stage stage-p">Proposal</span></td><td>PT Sumber Rejeki Mandiri</td><td><div class="kc-avatar kc-avatar-xs">FN</div></td><td class="kc-td-num kc-mono">Rp 124.000.000</td><td class="kc-mono">14 Jun</td><td><span class="kc-badge kc-badge-warn">Med · 0.42</span></td><td class="kc-mono kc-muted">3d</td></tr>
+              <tr><td><input type="checkbox" class="kc-check"></td><td><strong>PT Andalan Niaga · pilot</strong></td><td><span class="stage stage-p">Proposal</span></td><td>PT Andalan Niaga</td><td><div class="kc-avatar kc-avatar-xs">HP</div></td><td class="kc-td-num kc-mono">Rp 56.000.000</td><td class="kc-mono">07 Jun</td><td><span class="kc-badge kc-badge-info">Med · 0.51</span></td><td class="kc-mono kc-muted">4d</td></tr>
+              <tr><td><input type="checkbox" class="kc-check"></td><td><strong>UD Karya Bahari · onboarding</strong></td><td><span class="stage stage-q">Qualified</span></td><td>UD Karya Bahari</td><td><div class="kc-avatar kc-avatar-xs">HP</div></td><td class="kc-td-num kc-mono">Rp 18.000.000</td><td class="kc-mono">21 Jun</td><td><span class="kc-badge">Low · 0.22</span></td><td class="kc-mono kc-muted" style="color: var(--state-warn);">14d</td></tr>
+              <tr><td><input type="checkbox" class="kc-check"></td><td><strong>PT Permata Cipta · POS</strong></td><td><span class="stage stage-q">Qualified</span></td><td>PT Permata Cipta</td><td><div class="kc-avatar kc-avatar-xs">FN</div></td><td class="kc-td-num kc-mono">Rp 42.500.000</td><td class="kc-mono">28 Jun</td><td><span class="kc-badge kc-badge-info">Med · 0.49</span></td><td class="kc-mono kc-muted">6d</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="padding: 10px var(--gutter); display: flex; align-items: center; gap: 8px; background: var(--bg-surface); border-top: 1px solid var(--border-subtle);">
+          <span class="kc-mono kc-muted" style="font-size: 11px;">1 of 42 selected</span>
+          <span class="kc-mono kc-muted" style="font-size: 11px;">·</span>
+          <a href="#" style="font-size: 12px;">Select all 42</a>
+          <div class="kc-spacer"></div>
+          <button class="kc-btn kc-btn-ghost kc-btn-sm">‹</button>
+          <span class="kc-mono kc-muted" style="font-size: 11px;">Page 1 of 4</span>
+          <button class="kc-btn kc-btn-ghost kc-btn-sm">›</button>
+        </div>
+      </section>
+
+      <!-- ── KANBAN ───────────────────────────────────────── -->
+      <section class="view" id="v-kanban">
+        <div class="list-toolbar">
+          <button class="kc-chip kc-chip-active">Group by: Stage <span class="kc-x">×</span></button>
+          <button class="kc-chip">Color: AI score</button>
+          <div class="kc-spacer"></div>
+          <span class="kc-mono kc-muted" style="font-size: 11px;">42 cards · Rp 1.84 mi</span>
+        </div>
+
+        <div class="kanban-wrap">
+
+          <div class="kan-col">
+            <div class="kan-col-head">
+              <div class="stage stage-q" style="padding: 2px 7px;">Qualified</div>
+              <div class="kan-col-spacer"></div>
+              <span class="kan-col-meta kc-mono">14</span>
+              <span class="kan-col-wip">WIP 14/20</span>
+              <button class="kc-btn kc-btn-ghost kc-btn-xs"><i data-icon="plus" class="kc-icon-sm"></i></button>
+            </div>
+            <div class="kan-cards">
+              <div class="kan-card">
+                <div class="ttl">PT Permata Cipta · POS</div>
+                <div class="sub">Initial qual call done · waiting on org chart</div>
+                <div class="meta-chips"><span class="kc-badge kc-badge-info" style="font-size: 9px;">Med · 0.49</span></div>
+                <div class="row"><div class="kc-avatar-group"><div class="kc-avatar kc-avatar-xs">FN</div></div><div class="kc-spacer"></div><span class="val kc-mono">42.5jt</span></div>
+              </div>
+              <div class="kan-card">
+                <div class="ttl">UD Karya Bahari · onboarding</div>
+                <div class="sub">Small biz · 12 employees</div>
+                <div class="meta-chips"><span class="kc-badge" style="font-size: 9px;">Low · 0.22</span><span class="kc-badge kc-badge-warn" style="font-size: 9px;">Stalled 14d</span></div>
+                <div class="row"><div class="kc-avatar-group"><div class="kc-avatar kc-avatar-xs">HP</div></div><div class="kc-spacer"></div><span class="val kc-mono">18jt</span></div>
+              </div>
+              <div class="kan-card">
+                <div class="ttl">PT Mitra Logistik · pilot</div>
+                <div class="meta-chips"><span class="kc-badge kc-badge-info" style="font-size: 9px;">High · 0.78</span></div>
+                <div class="row"><div class="kc-avatar kc-avatar-xs">FN</div><div class="kc-spacer"></div><span class="val kc-mono">96jt</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kan-col">
+            <div class="kan-col-head">
+              <div class="stage stage-p" style="padding: 2px 7px;">Proposal</div>
+              <div class="kan-col-spacer"></div>
+              <span class="kan-col-meta kc-mono">18</span>
+              <span class="kan-col-wip over">WIP 18/15</span>
+            </div>
+            <div class="kan-cards">
+              <div class="kan-card is-dragging">
+                <div class="ttl">PT Sumber Rejeki · IS-FIN</div>
+                <div class="sub">Proposal sent 3d ago · followup tomorrow</div>
+                <div class="meta-chips"><span class="kc-badge kc-badge-warn" style="font-size: 9px;">Med · 0.42</span></div>
+                <div class="row"><div class="kc-avatar kc-avatar-xs">FN</div><div class="kc-spacer"></div><span class="val kc-mono">124jt</span></div>
+              </div>
+              <div class="kan-card">
+                <div class="ttl">PT Andalan Niaga · pilot</div>
+                <div class="meta-chips"><span class="kc-badge kc-badge-info" style="font-size: 9px;">Med · 0.51</span></div>
+                <div class="row"><div class="kc-avatar kc-avatar-xs">HP</div><div class="kc-spacer"></div><span class="val kc-mono">56jt</span></div>
+              </div>
+              <div class="kan-card">
+                <div class="ttl">CV Cahaya Sentosa · HR + Payroll</div>
+                <div class="meta-chips"><span class="kc-badge kc-badge-info" style="font-size: 9px;">High · 0.71</span></div>
+                <div class="row"><div class="kc-avatar kc-avatar-xs">FN</div><div class="kc-spacer"></div><span class="val kc-mono">68jt</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kan-col">
+            <div class="kan-col-head">
+              <div class="stage stage-n" style="padding: 2px 7px;">Negotiation</div>
+              <div class="kan-col-spacer"></div>
+              <span class="kan-col-meta kc-mono">7</span>
+              <span class="kan-col-wip">WIP 7/10</span>
+            </div>
+            <div class="kan-cards">
+              <div class="kan-card">
+                <div class="ttl">PT Maju Bersama · ERP upgrade</div>
+                <div class="sub">Final price approval pending</div>
+                <div class="meta-chips"><span class="kc-badge kc-badge-info" style="font-size: 9px;">High · 0.72</span></div>
+                <div class="row"><div class="kc-avatar kc-avatar-xs">FN</div><div class="kc-spacer"></div><span class="val kc-mono">248jt</span></div>
+              </div>
+              <div class="kan-card">
+                <div class="ttl">CV Bintang Timur · IS-HR</div>
+                <div class="meta-chips"><span class="kc-badge kc-badge-info" style="font-size: 9px;">Med · 0.58</span></div>
+                <div class="row"><div class="kc-avatar kc-avatar-xs">HP</div><div class="kc-spacer"></div><span class="val kc-mono">86.5jt</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kan-col">
+            <div class="kan-col-head">
+              <div class="stage stage-w" style="padding: 2px 7px;">Closed-won</div>
+              <div class="kan-col-spacer"></div>
+              <span class="kan-col-meta kc-mono">3</span>
+            </div>
+            <div class="kan-cards">
+              <div class="kan-card" style="opacity: 0.85;">
+                <div class="ttl">PT Anugerah Bumi · Q2</div>
+                <div class="meta-chips"><span class="kc-badge kc-badge-success" style="font-size: 9px;">Won 38m ago</span></div>
+                <div class="row"><div class="kc-avatar kc-avatar-xs">FN</div><div class="kc-spacer"></div><span class="val kc-mono">178jt</span></div>
+              </div>
+              <div class="kan-card" style="opacity: 0.85;">
+                <div class="ttl">CV Sumber Cetak · branding</div>
+                <div class="row"><div class="kc-avatar kc-avatar-xs">HP</div><div class="kc-spacer"></div><span class="val kc-mono">12jt</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── CALENDAR ─────────────────────────────────────── -->
+      <section class="view" id="v-calendar">
+        <div class="cal-wrap">
+          <div class="cal-toolbar">
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="chevron-left" class="kc-icon-sm"></i></button>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm">Today</button>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="chevron-right" class="kc-icon-sm"></i></button>
+            <div style="font: 600 16px/1 var(--font-sans); color: var(--text-primary); padding: 0 12px;">May 2026</div>
+            <div class="kc-spacer"></div>
+            <div class="kc-seg">
+              <button class="kc-seg-opt">Day</button>
+              <button class="kc-seg-opt">Week</button>
+              <button class="kc-seg-opt kc-seg-opt-active">Month</button>
+              <button class="kc-seg-opt">Year</button>
+            </div>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm"><i data-icon="filter" class="kc-icon-sm"></i> By close date</button>
+          </div>
+
+          <div class="cal-grid">
+            <div class="cal-header">
+              <div class="h">Mon</div><div class="h">Tue</div><div class="h">Wed</div><div class="h">Thu</div><div class="h">Fri</div><div class="h">Sat</div><div class="h">Sun</div>
+            </div>
+            <div class="cal-cell muted"><span class="num">27</span></div>
+            <div class="cal-cell muted"><span class="num">28</span></div>
+            <div class="cal-cell muted"><span class="num">29</span></div>
+            <div class="cal-cell muted"><span class="num">30</span></div>
+            <div class="cal-cell"><span class="num">1</span><div class="cal-evt muted">Bayar gaji · IS-PAY</div></div>
+            <div class="cal-cell muted"><span class="num">2</span></div>
+            <div class="cal-cell muted"><span class="num">3</span></div>
+
+            <div class="cal-cell"><span class="num">4</span></div>
+            <div class="cal-cell"><span class="num">5</span><div class="cal-evt">CV Bintang · demo</div></div>
+            <div class="cal-cell"><span class="num">6</span></div>
+            <div class="cal-cell"><span class="num">7</span></div>
+            <div class="cal-cell"><span class="num">8</span><div class="cal-evt">PT Andalan · followup</div></div>
+            <div class="cal-cell muted"><span class="num">9</span></div>
+            <div class="cal-cell muted"><span class="num">10</span></div>
+
+            <div class="cal-cell"><span class="num">11</span><div class="cal-evt danger">INV-0179 jatuh tempo</div></div>
+            <div class="cal-cell"><span class="num">12</span></div>
+            <div class="cal-cell"><span class="num">13</span></div>
+            <div class="cal-cell"><span class="num">14</span><div class="cal-evt">Standup</div><div class="cal-evt warn">Q2 forecast</div></div>
+            <div class="cal-cell"><span class="num">15</span></div>
+            <div class="cal-cell muted"><span class="num">16</span></div>
+            <div class="cal-cell muted"><span class="num">17</span></div>
+
+            <div class="cal-cell"><span class="num">18</span><div class="cal-evt">Demo · PT Permata</div></div>
+            <div class="cal-cell"><span class="num">19</span></div>
+            <div class="cal-cell"><span class="num">20</span></div>
+            <div class="cal-cell"><span class="num">21</span><div class="cal-evt success">PT Anugerah · closing call</div></div>
+            <div class="cal-cell"><span class="num">22</span><div class="cal-evt success">PT Anugerah · WON</div></div>
+            <div class="cal-cell muted"><span class="num">23</span></div>
+            <div class="cal-cell muted"><span class="num">24</span></div>
+
+            <div class="cal-cell"><span class="num today">23</span><div class="cal-evt">Standup</div><div class="cal-evt">Demo · Anugerah</div></div>
+            <div class="cal-cell"><span class="num">26</span></div>
+            <div class="cal-cell"><span class="num">27</span><div class="cal-evt">Demo · PT Mitra</div></div>
+            <div class="cal-cell"><span class="num">28</span><div class="cal-evt">PT Maju · contract</div></div>
+            <div class="cal-cell"><span class="num">29</span></div>
+            <div class="cal-cell muted"><span class="num">30</span><div class="cal-evt warn">CoreTax sync</div></div>
+            <div class="cal-cell muted"><span class="num">31</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── PIVOT ────────────────────────────────────────── -->
+      <section class="view" id="v-pivot">
+        <div class="pivot-wrap">
+
+          <div class="pivot-controls">
+            <span class="kc-mono kc-muted" style="font-size: 11px;">Rows</span>
+            <button class="kc-chip kc-chip-active"><i data-icon="user" class="kc-icon-sm"></i> Owner</button>
+            <button class="kc-chip"><i data-icon="plus" class="kc-icon-sm"></i></button>
+            <span style="color: var(--border-strong); margin: 0 4px;">|</span>
+            <span class="kc-mono kc-muted" style="font-size: 11px;">Columns</span>
+            <button class="kc-chip kc-chip-active"><i data-icon="kanban" class="kc-icon-sm"></i> Stage</button>
+            <button class="kc-chip"><i data-icon="plus" class="kc-icon-sm"></i></button>
+            <span style="color: var(--border-strong); margin: 0 4px;">|</span>
+            <span class="kc-mono kc-muted" style="font-size: 11px;">Measure</span>
+            <button class="kc-chip kc-chip-active">Σ Value</button>
+            <button class="kc-chip">Count</button>
+            <div class="kc-spacer"></div>
+            <button class="kc-btn kc-btn-ghost kc-btn-sm"><i data-icon="download"></i></button>
+            <button class="kc-btn kc-btn-secondary kc-btn-sm">Switch axes</button>
+          </div>
+
+          <div class="kc-card" style="overflow: hidden;">
+            <table class="kc-table pivot-table">
+              <thead>
+                <tr>
+                  <th>Owner ▾</th>
+                  <th>Qualified</th>
+                  <th>Proposal</th>
+                  <th>Negotiation</th>
+                  <th>Closed-won</th>
+                  <th class="col-total">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs">FN</div>Fitri Nurhaliza</div></td>
+                  <td class="kc-mono"><span class="pivot-bar" style="width: 28px;"></span>138.500.000</td>
+                  <td class="kc-mono"><span class="pivot-bar" style="width: 56px;"></span>192.000.000</td>
+                  <td class="kc-mono"><span class="pivot-bar" style="width: 72px;"></span>248.000.000</td>
+                  <td class="kc-mono"><span class="pivot-bar" style="width: 48px;"></span>178.000.000</td>
+                  <td class="kc-mono col-total">756.500.000</td>
+                </tr>
+                <tr>
+                  <td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs">HP</div>Hadi Pranoto</div></td>
+                  <td class="kc-mono"><span class="pivot-bar" style="width: 12px;"></span>18.000.000</td>
+                  <td class="kc-mono"><span class="pivot-bar" style="width: 22px;"></span>56.000.000</td>
+                  <td class="kc-mono"><span class="pivot-bar" style="width: 32px;"></span>86.500.000</td>
+                  <td class="kc-mono"><span class="pivot-bar" style="width: 8px;"></span>12.000.000</td>
+                  <td class="kc-mono col-total">172.500.000</td>
+                </tr>
+                <tr>
+                  <td><div style="display: flex; align-items: center; gap: 6px;"><div class="kc-avatar kc-avatar-xs" style="background: var(--accent-100); color: var(--accent-700);">AW</div>Andi Wijaya</div></td>
+                  <td class="kc-mono"><span class="pivot-bar" style="width: 18px;"></span>42.000.000</td>
+                  <td class="kc-mono"><span class="pivot-bar" style="width: 24px;"></span>58.000.000</td>
+                  <td class="kc-mono kc-muted">—</td>
+                  <td class="kc-mono kc-muted">—</td>
+                  <td class="kc-mono col-total">100.000.000</td>
+                </tr>
+                <tr class="row-total">
+                  <td>Total</td>
+                  <td class="kc-mono">198.500.000</td>
+                  <td class="kc-mono">306.000.000</td>
+                  <td class="kc-mono">334.500.000</td>
+                  <td class="kc-mono">190.000.000</td>
+                  <td class="kc-mono col-total" style="font-size: 14px;">Rp 1.029.000.000</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="kc-banner">
+            <i data-icon="info"></i>
+            <div>Showing 3 of 4 owners (1 hidden by your filter). Numbers in Rupiah · totals exclude won deals from previous quarters.</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+<script src="../icons.js"></script>
+<script>
+  document.querySelectorAll('[data-view]').forEach(b => {
+    b.addEventListener('click', () => {
+      const v = b.getAttribute('data-view');
+      document.querySelectorAll('[data-view]').forEach(x => x.classList.toggle('kc-seg-opt-active', x === b));
+      document.querySelectorAll('.view').forEach(s => s.classList.toggle('is-active', s.id === 'v-' + v));
+    });
+  });
+</script>
+</body></html>
