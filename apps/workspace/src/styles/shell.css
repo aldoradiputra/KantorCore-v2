@@ -1,6 +1,6 @@
 /* App shell layout — used by every screen via _shell.js mount() */
 
-body.kc-shell {
+.kc-shell {
   margin: 0;
   height: 100vh;
   display: grid;
