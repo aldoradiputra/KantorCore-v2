@@ -652,7 +652,26 @@
 .kc-icon-lg { width: 20px; height: 20px; }
 .kc-icon-xl { width: 24px; height: 24px; }
 
-/* §17 — Utility helpers --------------------------------------- */
+/* §17 — Presence ---------------------------------------------- */
+@keyframes kc-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .45; transform: scale(.85); }
+}
+.kc-presence-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.kc-presence-online {
+  background: var(--state-success);
+  animation: kc-pulse 2s ease-in-out infinite;
+}
+.kc-presence-offline {
+  background: var(--neutral-400);
+}
+
+/* §18 — Utility helpers --------------------------------------- */
 .kc-stack { display: flex; flex-direction: column; }
 .kc-row   { display: flex; flex-direction: row;    }
 .kc-row-c { display: flex; flex-direction: row; align-items: center; }
