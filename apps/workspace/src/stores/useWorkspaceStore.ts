@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { TenantContext } from '@/types/tenant';
 import type { AuthUser, Conglomerate, TenantStatus } from '@/types/auth';
+import { mockOnlineColleagues, type OnlineColleague } from '@/mocks/presence';
 
 export type ModuleId = 'workspace' | 'hr' | 'finance' | 'inventory' | 'procurement' | 'sales' | 'crm' | 'projects' | 'timesheets' | 'expenses' | 'chat' | 'omnichannel' | 'helpdesk' | 'documents';
 export type ViewMode = 'list' | 'kanban' | 'calendar' | 'pivot';
@@ -35,6 +36,9 @@ interface WorkspaceState {
   activeAISection: AISection;
   selectedAgentRunId: string | null;
   activeAdminSection: AdminSection;
+
+  /* Presence (mocked) */
+  onlineColleagues: OnlineColleague[];
 
   setUser: (user: AuthUser | null) => void;
   setSelectedContexts: (contexts: string[]) => void;
@@ -83,6 +87,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   activeAISection: 'inbox',
   selectedAgentRunId: null,
   activeAdminSection: 'users',
+  onlineColleagues: mockOnlineColleagues,
 
   setUser: (user) => set({ user }),
   setSelectedContexts: (contexts) => set({ selectedContexts: contexts }),
