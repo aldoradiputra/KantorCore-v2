@@ -58,3 +58,24 @@ export function orderContexts(c: Conglomerate, contextIds: string[]): string[] {
   const selected = new Set(contextIds);
   return allContextIds(c).filter((id) => selected.has(id));
 }
+
+/* --- Multi-conglomerate variants (a user may belong to several) --- */
+
+/** Resolve context ids against several conglomerates, first match wins. */
+export function resolveContextsAcross(
+  conglomerates: Conglomerate[],
+  contextIds: string[],
+): ResolvedContext[] {
+  return contextIds.flatMap((id) => {
+    for (const c of conglomerates) {
+      const [hit] = resolveContexts(c, [id]);
+      if (hit) return [hit];
+    }
+    return [];
+  });
+}
+
+/** Every context id across all conglomerates, in natural tree order. */
+export function allContextIdsAcross(conglomerates: Conglomerate[]): string[] {
+  return conglomerates.flatMap((c) => allContextIds(c));
+}

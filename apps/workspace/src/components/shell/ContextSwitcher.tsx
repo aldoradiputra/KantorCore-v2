@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
-import { mockConglomerate } from '@/mocks/corporate';
-import { companyContextIds, makeContextId, resolveContexts } from '@/lib/corporate';
+import { useAvailableTenants } from '@/lib/useTenants';
+import { companyContextIds, makeContextId, resolveContextsAcross } from '@/lib/corporate';
 import { Checkbox } from '@/components/ui/Checkbox';
 
 const shortCompany = (name: string) => name.replace(/^PT\s+/, '');
 
 export function ContextSwitcher() {
   const router = useRouter();
+  const tenants = useAvailableTenants();
   const selected = useWorkspaceStore((s) => s.selectedContexts);
   const toggleContext = useWorkspaceStore((s) => s.toggleContext);
   const setContextGroup = useWorkspaceStore((s) => s.setContextGroup);
@@ -32,9 +33,10 @@ export function ContextSwitcher() {
     };
   }, [open]);
 
-  const resolved = resolveContexts(mockConglomerate, selected);
+  const resolved = resolveContextsAcross(tenants, selected);
   const count = resolved.length;
-  const mark = shortCompany(mockConglomerate.name).charAt(0);
+  const multiTenant = tenants.length > 1;
+  const mark = (tenants[0] ? shortCompany(tenants[0].name) : 'K').charAt(0);
 
   let primary: string;
   let secondary: string;
@@ -45,7 +47,7 @@ export function ContextSwitcher() {
     primary = shortCompany(resolved[0].company.name);
     secondary = resolved[0].branch.name;
   } else {
-    primary = shortCompany(mockConglomerate.name).replace(/ Conglomerate$/, '');
+    primary = shortCompany(tenants[0]?.name ?? 'Workspace').replace(/ Conglomerate$/, '');
     secondary = `${count} environments`;
   }
 
@@ -66,52 +68,57 @@ export function ContextSwitcher() {
           style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, width: 320, zIndex: 'var(--z-popover)' as React.CSSProperties['zIndex'], padding: 0, maxHeight: 'min(72vh, 540px)', display: 'flex', flexDirection: 'column' }}
         >
           <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div style={{ font: '600 12px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>{mockConglomerate.name}</div>
+            <div style={{ font: '600 12px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>Context switcher</div>
             <div style={{ font: '400 11px/1.3 var(--font-sans)', color: 'var(--text-muted)', marginTop: 2 }}>Aktifkan beberapa entitas sekaligus</div>
           </div>
 
           <div style={{ overflow: 'auto', padding: 4, flex: 1 }}>
-            {mockConglomerate.companies.map((company) => {
-              const ids = companyContextIds(company);
-              const selCount = ids.filter((id) => selected.includes(id)).length;
-              const allSel = selCount === ids.length;
-              const someSel = selCount > 0 && !allSel;
-              return (
-                <div key={company.id} style={{ marginBottom: 2 }}>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setContextGroup(ids, !allSel)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setContextGroup(ids, !allSel); } }}
-                    className="kc-menu-item"
-                    style={{ gap: 10 }}
-                  >
-                    <Checkbox checked={allSel} indeterminate={someSel} onChange={() => setContextGroup(ids, !allSel)} onClick={(e) => e.stopPropagation()} />
-                    <span style={{ flex: 1, font: '600 12px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>{shortCompany(company.name)}</span>
-                    <span style={{ font: '500 11px/1 var(--font-mono)', color: 'var(--text-muted)' }}>{selCount}/{ids.length}</span>
-                  </div>
-                  {company.branches.map((branch) => {
-                    const ctx = makeContextId(company.id, branch.id);
-                    const checked = selected.includes(ctx);
-                    return (
+            {tenants.map((tenant) => (
+              <div key={tenant.id}>
+                {multiTenant && <div className="kc-menu-section">{shortCompany(tenant.name)}</div>}
+                {tenant.companies.map((company) => {
+                  const ids = companyContextIds(company);
+                  const selCount = ids.filter((id) => selected.includes(id)).length;
+                  const allSel = selCount === ids.length;
+                  const someSel = selCount > 0 && !allSel;
+                  return (
+                    <div key={company.id} style={{ marginBottom: 2 }}>
                       <div
-                        key={branch.id}
                         role="button"
                         tabIndex={0}
-                        onClick={() => toggleContext(ctx)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleContext(ctx); } }}
+                        onClick={() => setContextGroup(ids, !allSel)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setContextGroup(ids, !allSel); } }}
                         className="kc-menu-item"
-                        style={{ gap: 10, paddingLeft: 28 }}
+                        style={{ gap: 10 }}
                       >
-                        <Checkbox checked={checked} onChange={() => toggleContext(ctx)} onClick={(e) => e.stopPropagation()} />
-                        <span style={{ flex: 1, font: '400 13px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>{branch.name}</span>
-                        <span style={{ font: '400 11px/1 var(--font-sans)', color: 'var(--text-muted)' }}>{branch.city}</span>
+                        <Checkbox checked={allSel} indeterminate={someSel} onChange={() => setContextGroup(ids, !allSel)} onClick={(e) => e.stopPropagation()} />
+                        <span style={{ flex: 1, font: '600 12px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>{shortCompany(company.name)}</span>
+                        <span style={{ font: '500 11px/1 var(--font-mono)', color: 'var(--text-muted)' }}>{selCount}/{ids.length}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                      {company.branches.map((branch) => {
+                        const ctx = makeContextId(company.id, branch.id);
+                        const checked = selected.includes(ctx);
+                        return (
+                          <div
+                            key={branch.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => toggleContext(ctx)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleContext(ctx); } }}
+                            className="kc-menu-item"
+                            style={{ gap: 10, paddingLeft: 28 }}
+                          >
+                            <Checkbox checked={checked} onChange={() => toggleContext(ctx)} onClick={(e) => e.stopPropagation()} />
+                            <span style={{ flex: 1, font: '400 13px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>{branch.name}</span>
+                            <span style={{ font: '400 11px/1 var(--font-sans)', color: 'var(--text-muted)' }}>{branch.city}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
 
           <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 8 }}>

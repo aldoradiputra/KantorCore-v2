@@ -3,9 +3,10 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
-import { mockConglomerate } from '@/mocks/corporate';
-import { allContextIds, companyContextIds, makeContextId } from '@/lib/corporate';
+import { useAvailableTenants } from '@/lib/useTenants';
+import { allContextIdsAcross, companyContextIds, makeContextId } from '@/lib/corporate';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { CreateTenantWizard } from '@/components/onboarding/CreateTenantWizard';
 import type { CompanyTier } from '@/types/auth';
 
 const TIER_LABEL: Record<CompanyTier, string> = {
@@ -24,7 +25,12 @@ export default function OnboardingPage() {
   const storedContexts = useWorkspaceStore((s) => s.selectedContexts);
   const setSelectedContexts = useWorkspaceStore((s) => s.setSelectedContexts);
 
-  const everyContextId = useMemo(() => allContextIds(mockConglomerate), []);
+  const tenants = useAvailableTenants();
+  const forcedCreate = tenants.length === 0; // new NIK with no existing workspaces
+  const [mode, setMode] = useState<'select' | 'create'>('select');
+  const showWizard = forcedCreate || mode === 'create';
+
+  const everyContextId = useMemo(() => allContextIdsAcross(tenants), [tenants]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(storedContexts));
 
   function toggle(id: string) {
@@ -69,118 +75,138 @@ export default function OnboardingPage() {
         </div>
       </header>
 
-      {/* Centered selection panel */}
       <main style={{ flex: 1, overflow: 'auto', padding: '40px 24px 120px', display: 'flex', justifyContent: 'center' }}>
-        <div style={{ width: '100%', maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div>
-            <div className="t-micro" style={{ color: 'var(--text-accent)' }}>Langkah 2 dari 2 · Akses Multi-Entitas</div>
-            <h1 style={{ font: '700 28px/1.2 var(--font-sans)', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '8px 0 6px' }}>
-              Select Your Workspace Environment
-            </h1>
-            <p style={{ font: '400 14px/1.6 var(--font-sans)', color: 'var(--text-secondary)', margin: 0, maxWidth: '60ch' }}>
-              Identitas Anda memiliki akses ke beberapa perusahaan dan cabang. Pilih satu atau beberapa
-              untuk dimuat secara bersamaan — Anda dapat mengubahnya kapan saja dari context switcher.
-            </p>
-          </div>
-
-          {/* Conglomerate card */}
-          <section className="kc-card kc-card-elevated">
-            <div className="kc-card-head">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', background: 'var(--accent-600)', color: '#fff', display: 'grid', placeItems: 'center', font: '700 15px/1 var(--font-sans)', flexShrink: 0 }}>
-                  {mockConglomerate.name.replace(/^PT\s+/, '').charAt(0)}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div className="kc-card-title">{mockConglomerate.name}</div>
-                  <div className="kc-card-sub">{mockConglomerate.companies.length} perusahaan · {everyContextId.length} cabang tersedia</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button type="button" className="kc-btn kc-btn-ghost kc-btn-sm" onClick={() => setSelected(new Set(everyContextId))}>Pilih semua</button>
-                <button type="button" className="kc-btn kc-btn-ghost kc-btn-sm" onClick={() => setSelected(new Set())} disabled={count === 0}>Bersihkan</button>
-              </div>
+        {showWizard ? (
+          <CreateTenantWizard canCancel={!forcedCreate} onCancel={() => setMode('select')} />
+        ) : (
+          <div style={{ width: '100%', maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div>
+              <div className="t-micro" style={{ color: 'var(--text-accent)' }}>Langkah 2 dari 2 · Akses Multi-Entitas</div>
+              <h1 style={{ font: '700 28px/1.2 var(--font-sans)', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '8px 0 6px' }}>
+                Select Your Workspace Environment
+              </h1>
+              <p style={{ font: '400 14px/1.6 var(--font-sans)', color: 'var(--text-secondary)', margin: 0, maxWidth: '60ch' }}>
+                Identitas Anda memiliki akses ke beberapa perusahaan dan cabang. Pilih satu atau beberapa
+                untuk dimuat secara bersamaan — Anda dapat mengubahnya kapan saja dari context switcher.
+              </p>
             </div>
 
-            <div className="kc-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {mockConglomerate.companies.map((company) => {
-                const ids = companyContextIds(company);
-                const selCount = ids.filter((id) => selected.has(id)).length;
-                const allSel = selCount === ids.length;
-                const someSel = selCount > 0 && !allSel;
-                return (
-                  <div key={company.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
-                    {/* Company header — selects all branches */}
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => toggleCompany(ids)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCompany(ids); } }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-sunken)', cursor: 'pointer' }}
-                    >
-                      <Checkbox checked={allSel} indeterminate={someSel} onChange={() => toggleCompany(ids)} onClick={(e) => e.stopPropagation()} />
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ font: '600 13px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>{company.name}</span>
-                          {company.tier && <span className="kc-badge kc-badge-outline">{TIER_LABEL[company.tier]}</span>}
-                        </div>
-                        <div className="kc-mono" style={{ font: '400 11px/1.3 var(--font-mono)', color: 'var(--text-muted)', marginTop: 2 }}>NPWP {company.npwp}</div>
-                      </div>
-                      <span className="kc-badge" style={{ background: selCount ? 'var(--fill-accent-subtle)' : 'var(--fill-subtle)', color: selCount ? 'var(--text-accent)' : 'var(--text-muted)' }}>
-                        {selCount}/{ids.length}
-                      </span>
+            {tenants.map((tenant) => (
+              <section key={tenant.id} className="kc-card kc-card-elevated">
+                <div className="kc-card-head">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', background: 'var(--accent-600)', color: '#fff', display: 'grid', placeItems: 'center', font: '700 15px/1 var(--font-sans)', flexShrink: 0 }}>
+                      {tenant.name.replace(/^PT\s+/, '').charAt(0)}
                     </div>
-
-                    {/* Branch rows */}
-                    <div>
-                      {company.branches.map((branch) => {
-                        const ctx = makeContextId(company.id, branch.id);
-                        const checked = selected.has(ctx);
-                        return (
-                          <div
-                            key={branch.id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => toggle(ctx)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(ctx); } }}
-                            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px 10px 16px', borderTop: '1px solid var(--border-subtle)', cursor: 'pointer', background: checked ? 'var(--fill-accent-subtle)' : 'transparent' }}
-                          >
-                            <Checkbox checked={checked} onChange={() => toggle(ctx)} onClick={(e) => e.stopPropagation()} />
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, flex: 1 }}>
-                              <span style={{ font: '500 13px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>{branch.name}</span>
-                              <span className="kc-mono" style={{ font: '500 10px/1 var(--font-mono)', color: 'var(--text-muted)' }}>{branch.code}</span>
-                              <span style={{ font: '400 12px/1.3 var(--font-sans)', color: 'var(--text-muted)' }}>· {branch.city}</span>
-                            </div>
-                            {branch.headcount !== undefined && (
-                              <span style={{ font: '400 11px/1 var(--font-sans)', color: 'var(--text-muted)' }}>{branch.headcount} staf</span>
-                            )}
-                            <span className="kc-tag">{branch.role}</span>
-                          </div>
-                        );
-                      })}
+                    <div style={{ minWidth: 0 }}>
+                      <div className="kc-card-title">{tenant.name}</div>
+                      <div className="kc-card-sub">{tenant.companies.length} perusahaan · {tenant.companies.reduce((n, c) => n + c.branches.length, 0)} cabang tersedia</div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button type="button" className="kc-btn kc-btn-ghost kc-btn-sm" onClick={() => setSelected((prev) => new Set([...prev, ...tenant.companies.flatMap(companyContextIds)]))}>Pilih semua</button>
+                    <button type="button" className="kc-btn kc-btn-ghost kc-btn-sm" onClick={() => setSelected((prev) => { const n = new Set(prev); tenant.companies.flatMap(companyContextIds).forEach((id) => n.delete(id)); return n; })}>Bersihkan</button>
+                  </div>
+                </div>
+
+                <div className="kc-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {tenant.companies.map((company) => {
+                    const ids = companyContextIds(company);
+                    const selCount = ids.filter((id) => selected.has(id)).length;
+                    const allSel = selCount === ids.length;
+                    const someSel = selCount > 0 && !allSel;
+                    return (
+                      <div key={company.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => toggleCompany(ids)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCompany(ids); } }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-sunken)', cursor: 'pointer' }}
+                        >
+                          <Checkbox checked={allSel} indeterminate={someSel} onChange={() => toggleCompany(ids)} onClick={(e) => e.stopPropagation()} />
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ font: '600 13px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>{company.name}</span>
+                              {company.tier && <span className="kc-badge kc-badge-outline">{TIER_LABEL[company.tier]}</span>}
+                            </div>
+                            <div className="kc-mono" style={{ font: '400 11px/1.3 var(--font-mono)', color: 'var(--text-muted)', marginTop: 2 }}>NPWP {company.npwp}</div>
+                          </div>
+                          <span className="kc-badge" style={{ background: selCount ? 'var(--fill-accent-subtle)' : 'var(--fill-subtle)', color: selCount ? 'var(--text-accent)' : 'var(--text-muted)' }}>
+                            {selCount}/{ids.length}
+                          </span>
+                        </div>
+
+                        <div>
+                          {company.branches.map((branch) => {
+                            const ctx = makeContextId(company.id, branch.id);
+                            const checked = selected.has(ctx);
+                            return (
+                              <div
+                                key={branch.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => toggle(ctx)}
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(ctx); } }}
+                                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px 10px 16px', borderTop: '1px solid var(--border-subtle)', cursor: 'pointer', background: checked ? 'var(--fill-accent-subtle)' : 'transparent' }}
+                              >
+                                <Checkbox checked={checked} onChange={() => toggle(ctx)} onClick={(e) => e.stopPropagation()} />
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, flex: 1 }}>
+                                  <span style={{ font: '500 13px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>{branch.name}</span>
+                                  <span className="kc-mono" style={{ font: '500 10px/1 var(--font-mono)', color: 'var(--text-muted)' }}>{branch.code}</span>
+                                  <span style={{ font: '400 12px/1.3 var(--font-sans)', color: 'var(--text-muted)' }}>· {branch.city}</span>
+                                </div>
+                                {branch.headcount !== undefined && (
+                                  <span style={{ font: '400 11px/1 var(--font-sans)', color: 'var(--text-muted)' }}>{branch.headcount} staf</span>
+                                )}
+                                <span className="kc-tag">{branch.role}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+
+            {/* Start a New Organization */}
+            <button
+              type="button"
+              onClick={() => setMode('create')}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '16px 18px', borderRadius: 'var(--r-lg)', border: '1.5px dashed var(--border-strong)', background: 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left' }}
+            >
+              <div style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', background: 'var(--fill-accent-subtle)', color: 'var(--text-accent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ font: '600 14px/1.3 var(--font-sans)', color: 'var(--text-primary)' }}>Start a New Organization</div>
+                <div style={{ font: '400 12px/1.4 var(--font-sans)', color: 'var(--text-muted)', marginTop: 2 }}>Luncurkan tenant baru dengan Free Trial 15 hari — tanpa kartu kredit.</div>
+              </div>
+              <span className="kc-badge kc-badge-accent">Free Trial</span>
+            </button>
+          </div>
+        )}
       </main>
 
-      {/* Sticky action footer */}
-      <footer style={{ position: 'sticky', bottom: 0, borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ font: '600 13px/1 var(--font-sans)', color: count ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-            {count} environment dipilih
-          </span>
-          {count > 0 && (
-            <button type="button" onClick={() => setSelected(new Set())} className="kc-btn kc-btn-ghost kc-btn-sm">Bersihkan</button>
-          )}
-        </div>
-        <button type="button" onClick={enterWorkspace} disabled={count === 0} className="kc-btn kc-btn-primary kc-btn-lg" style={{ marginLeft: 'auto' }}>
-          Enter Selected Workspace
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-        </button>
-      </footer>
+      {/* Sticky action footer — only for the selection grid */}
+      {!showWizard && (
+        <footer style={{ position: 'sticky', bottom: 0, borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ font: '600 13px/1 var(--font-sans)', color: count ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+              {count} environment dipilih
+            </span>
+            {count > 0 && (
+              <button type="button" onClick={() => setSelected(new Set())} className="kc-btn kc-btn-ghost kc-btn-sm">Bersihkan</button>
+            )}
+          </div>
+          <button type="button" onClick={enterWorkspace} disabled={count === 0} className="kc-btn kc-btn-primary kc-btn-lg" style={{ marginLeft: 'auto' }}>
+            Enter Selected Workspace
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+          </button>
+        </footer>
+      )}
     </>
   );
 }

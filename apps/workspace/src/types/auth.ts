@@ -28,6 +28,9 @@ export const AuthUserSchema = z.object({
   initials: z.string().max(2),
   roles: z.array(z.string()),
   verifiedBy: PSrEProviderSchema.optional(),
+  /** True when this NIK has no existing tenant memberships — routes the user
+   * straight into the Create New Tenant wizard instead of the selection grid. */
+  isNewRegistration: z.boolean().optional(),
 });
 export type AuthUser = z.infer<typeof AuthUserSchema>;
 
@@ -62,3 +65,22 @@ export const ConglomerateSchema = z.object({
   companies: z.array(CorporateCompanySchema),
 });
 export type Conglomerate = z.infer<typeof ConglomerateSchema>;
+
+/* --- Subscription / trial lifecycle ---------------------------- */
+
+export const TenantStatusSchema = z.enum(['trial', 'paid', 'expired']);
+export type TenantStatus = z.infer<typeof TenantStatusSchema>;
+
+/* --- Create New Tenant wizard contract ------------------------- */
+
+export const TaxTypeSchema = z.enum(['non_pkp', 'pkp']);
+export type TaxType = z.infer<typeof TaxTypeSchema>;
+
+export const NewTenantConfigSchema = z.object({
+  companyName: z.string().min(1, 'Nama perusahaan wajib diisi.'),
+  industry: z.string().min(1),
+  headcountBand: z.string().min(1),
+  taxType: TaxTypeSchema,
+  region: z.string().min(1),
+});
+export type NewTenantConfig = z.infer<typeof NewTenantConfigSchema>;

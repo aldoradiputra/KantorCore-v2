@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { TenantContext } from '@/types/tenant';
-import type { AuthUser } from '@/types/auth';
+import type { AuthUser, Conglomerate, TenantStatus } from '@/types/auth';
 
 export type ModuleId = 'workspace' | 'hr' | 'finance' | 'inventory' | 'procurement' | 'sales' | 'crm' | 'projects' | 'timesheets' | 'expenses' | 'chat' | 'omnichannel' | 'helpdesk' | 'documents';
 export type ViewMode = 'list' | 'kanban' | 'calendar' | 'pivot';
@@ -14,6 +14,13 @@ interface WorkspaceState {
   /** Active branches as `${companyId}:${branchId}` ids — the array-based
    * context filter that Layer 1 turns into WHERE company_id IN (...). */
   selectedContexts: string[];
+  /** A tenant created in-session via the Create New Tenant wizard. */
+  customTenant: Conglomerate | null;
+
+  /* Subscription lifecycle */
+  tenantStatus: TenantStatus;
+  /** ISO date the free trial ends; null until seeded. */
+  trialEndsAt: string | null;
 
   theme: 'light' | 'dark';
   accent: 'indigo' | 'teal' | 'purple' | 'rose' | 'amber' | 'emerald';
@@ -36,6 +43,12 @@ interface WorkspaceState {
   setContextGroup: (contextIds: string[], selected: boolean) => void;
   clearContexts: () => void;
 
+  setCustomTenant: (tenant: Conglomerate | null) => void;
+  setTenantStatus: (status: TenantStatus) => void;
+  setTrialEndsAt: (iso: string | null) => void;
+  /** Mock-save a wizard-built tenant, flag it as a trial, and make it active. */
+  createTrialTenant: (tenant: Conglomerate, contextId: string, trialEndsAt: string) => void;
+
   setTheme: (theme: 'light' | 'dark') => void;
   setAccent: (accent: WorkspaceState['accent']) => void;
   setActiveTenant: (tenant: TenantContext) => void;
@@ -54,6 +67,9 @@ interface WorkspaceState {
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   user: null,
   selectedContexts: [],
+  customTenant: null,
+  tenantStatus: 'trial',
+  trialEndsAt: null,
   theme: 'light',
   accent: 'indigo',
   activeTenant: null,
@@ -84,6 +100,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
       return { selectedContexts: Array.from(next) };
     }),
   clearContexts: () => set({ selectedContexts: [] }),
+
+  setCustomTenant: (tenant) => set({ customTenant: tenant }),
+  setTenantStatus: (status) => set({ tenantStatus: status }),
+  setTrialEndsAt: (iso) => set({ trialEndsAt: iso }),
+  createTrialTenant: (tenant, contextId, trialEndsAt) =>
+    set({
+      customTenant: tenant,
+      selectedContexts: [contextId],
+      tenantStatus: 'trial',
+      trialEndsAt,
+    }),
 
   setTheme: (theme) => {
     document.documentElement.setAttribute('data-theme', theme);

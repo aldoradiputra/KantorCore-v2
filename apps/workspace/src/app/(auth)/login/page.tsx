@@ -17,6 +17,8 @@ const METHODS: { id: Method; label: string }[] = [
 export default function LoginPage() {
   const router = useRouter();
   const setUser = useWorkspaceStore((s) => s.setUser);
+  const setSelectedContexts = useWorkspaceStore((s) => s.setSelectedContexts);
+  const setCustomTenant = useWorkspaceStore((s) => s.setCustomTenant);
 
   const [method, setMethod] = useState<Method>('nik');
   const [submitting, setSubmitting] = useState(false);
@@ -39,8 +41,17 @@ export default function LoginPage() {
 
   function authenticate(nikValue: string) {
     setSubmitting(true);
-    // Mock PSrE handshake → seed the NIK-bound identity, then resolve entities.
-    setUser({ ...mockAuthUser, nik: nikValue });
+    // Mock PSrE handshake. A NIK that doesn't match an existing membership is
+    // treated as a brand-new registration → forced into the create-tenant wizard.
+    const isRegistered = nikValue === mockAuthUser.nik;
+    if (isRegistered) {
+      setUser({ ...mockAuthUser, nik: nikValue, isNewRegistration: false });
+    } else {
+      setUser({ nik: nikValue, name: 'Pengguna Baru', initials: 'PB', roles: ['Owner'], isNewRegistration: true });
+    }
+    // Fresh login starts with no active contexts / in-session tenant.
+    setSelectedContexts([]);
+    setCustomTenant(null);
     router.push('/onboarding');
   }
 
@@ -137,6 +148,14 @@ export default function LoginPage() {
                 style={{ border: 0, background: 'none', padding: 0, font: '500 11px/1.4 var(--font-sans)', color: 'var(--text-link)', cursor: 'pointer' }}
               >
                 Pakai NIK contoh
+              </button>
+              {' · '}
+              <button
+                type="button"
+                onClick={() => { setNik('1234567890123456'); setNikTouched(false); }}
+                style={{ border: 0, background: 'none', padding: 0, font: '500 11px/1.4 var(--font-sans)', color: 'var(--text-link)', cursor: 'pointer' }}
+              >
+                NIK baru (buat organisasi)
               </button>
             </div>
           )}
