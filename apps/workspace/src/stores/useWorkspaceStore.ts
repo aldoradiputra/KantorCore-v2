@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { TenantContext } from '@/types/tenant';
+import type { AuthUser, Conglomerate, TenantStatus } from '@/types/auth';
 
 export type ModuleId = 'workspace' | 'hr' | 'finance' | 'inventory' | 'procurement' | 'sales' | 'crm' | 'projects' | 'timesheets' | 'expenses' | 'chat' | 'omnichannel' | 'helpdesk' | 'documents';
 export type ViewMode = 'list' | 'kanban' | 'calendar' | 'pivot';
@@ -8,6 +9,19 @@ export type AISection = 'inbox' | 'conversation' | 'wizard' | 'tools' | 'mandate
 export type AdminSection = 'users' | 'security' | 'brand' | 'integrations' | 'model-meta';
 
 interface WorkspaceState {
+  /* Identity & multi-entity context (NIK-bound global identity) */
+  user: AuthUser | null;
+  /** Active branches as `${companyId}:${branchId}` ids — the array-based
+   * context filter that Layer 1 turns into WHERE company_id IN (...). */
+  selectedContexts: string[];
+  /** A tenant created in-session via the Create New Tenant wizard. */
+  customTenant: Conglomerate | null;
+
+  /* Subscription lifecycle */
+  tenantStatus: TenantStatus;
+  /** ISO date the free trial ends; null until seeded. */
+  trialEndsAt: string | null;
+
   theme: 'light' | 'dark';
   accent: 'indigo' | 'teal' | 'purple' | 'rose' | 'amber' | 'emerald';
   activeTenant: TenantContext | null;
@@ -21,6 +35,19 @@ interface WorkspaceState {
   activeAISection: AISection;
   selectedAgentRunId: string | null;
   activeAdminSection: AdminSection;
+
+  setUser: (user: AuthUser | null) => void;
+  setSelectedContexts: (contexts: string[]) => void;
+  toggleContext: (contextId: string) => void;
+  /** Bulk add/remove a set of contexts (e.g. all branches of one company). */
+  setContextGroup: (contextIds: string[], selected: boolean) => void;
+  clearContexts: () => void;
+
+  setCustomTenant: (tenant: Conglomerate | null) => void;
+  setTenantStatus: (status: TenantStatus) => void;
+  setTrialEndsAt: (iso: string | null) => void;
+  /** Mock-save a wizard-built tenant, flag it as a trial, and make it active. */
+  createTrialTenant: (tenant: Conglomerate, contextId: string, trialEndsAt: string) => void;
 
   setTheme: (theme: 'light' | 'dark') => void;
   setAccent: (accent: WorkspaceState['accent']) => void;
@@ -38,6 +65,11 @@ interface WorkspaceState {
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
+  user: null,
+  selectedContexts: [],
+  customTenant: null,
+  tenantStatus: 'trial',
+  trialEndsAt: null,
   theme: 'light',
   accent: 'indigo',
   activeTenant: null,
@@ -51,6 +83,34 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   activeAISection: 'inbox',
   selectedAgentRunId: null,
   activeAdminSection: 'users',
+
+  setUser: (user) => set({ user }),
+  setSelectedContexts: (contexts) => set({ selectedContexts: contexts }),
+  toggleContext: (contextId) =>
+    set((s) => ({
+      selectedContexts: s.selectedContexts.includes(contextId)
+        ? s.selectedContexts.filter((c) => c !== contextId)
+        : [...s.selectedContexts, contextId],
+    })),
+  setContextGroup: (contextIds, selected) =>
+    set((s) => {
+      const next = new Set(s.selectedContexts);
+      if (selected) contextIds.forEach((id) => next.add(id));
+      else contextIds.forEach((id) => next.delete(id));
+      return { selectedContexts: Array.from(next) };
+    }),
+  clearContexts: () => set({ selectedContexts: [] }),
+
+  setCustomTenant: (tenant) => set({ customTenant: tenant }),
+  setTenantStatus: (status) => set({ tenantStatus: status }),
+  setTrialEndsAt: (iso) => set({ trialEndsAt: iso }),
+  createTrialTenant: (tenant, contextId, trialEndsAt) =>
+    set({
+      customTenant: tenant,
+      selectedContexts: [contextId],
+      tenantStatus: 'trial',
+      trialEndsAt,
+    }),
 
   setTheme: (theme) => {
     document.documentElement.setAttribute('data-theme', theme);
