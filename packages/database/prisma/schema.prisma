@@ -1,0 +1,189 @@
+// This is your migration engine. Go and sqlc will handle the runtime querying.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// 1. GLOBAL IDENTITY NETWORK
+// ==========================================
+
+model User {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nik           String   @unique // Hashed/Encrypted at the Go API layer
+  email         String?  @unique
+  phone         String?  @unique
+  full_name     String
+  is_verified   Boolean  @default(false) // PSrE verification flag
+  created_at    DateTime @default(now())
+
+  // Relations
+  memberships   TenantMember[]
+  messages      ChatMessage[]
+  records       AppRecord[]    @relation("RecordCreator")
+}
+
+// ==========================================
+// 2. MULTI-ENTITY CORPORATE HIERARCHY
+// ==========================================
+
+model Tenant {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  status        String   @default("trial") // "trial", "active", "suspended"
+  created_at    DateTime @default(now())
+
+  companies     Company[]
+  members       TenantMember[]
+  blueprints    AppBlueprint[]
+  channels      ChatChannel[]
+  pulse_events  PulseEvent[]
+}
+
+model Company {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id     String   @db.Uuid
+  name          String
+  tax_id        String?  // NPWP
+
+  tenant        Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  branches      Branch[]
+
+  @@index([tenant_id])
+}
+
+model Branch {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id    String   @db.Uuid
+  name          String
+  region        String?
+
+  company       Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  memberships   TenantMember[]
+  records       AppRecord[]
+  channels      ChatChannel[]
+
+  @@index([company_id])
+}
+
+// The RBAC/PBAC Mapping Table
+model TenantMember {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String   @db.Uuid
+  tenant_id     String   @db.Uuid
+  branch_id     String?  @db.Uuid // If null, user is Tenant Super Admin
+  role          String   // e.g., "admin", "manager", "staff"
+
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  tenant        Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  branch        Branch?  @relation(fields: [branch_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, branch_id])
+  @@index([tenant_id, user_id])
+}
+
+// ==========================================
+// 3. THE "META-SCHEMA" PLATFORM (DYNAMIC APPS)
+// ==========================================
+
+// This defines the "App" (e.g., CRM, Contacts, Invoices)
+model AppBlueprint {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id     String   @db.Uuid
+  name          String   // e.g., "CRM Leads"
+  schema_def    Json     // Zod/JSON-Schema defining the fields (e.g., { "Amount": "number", "Status": "string" })
+  ui_layout     Json     // Determines how it looks on the frontend Split-Screen
+
+  tenant        Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  records       AppRecord[]
+
+  @@index([tenant_id])
+}
+
+// This stores the actual data for ANY app created by the platform
+model AppRecord {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blueprint_id  String   @db.Uuid
+  branch_id     String   @db.Uuid
+  created_by    String   @db.Uuid
+  data          Json     // The actual record (e.g., { "Amount": 50000, "Status": "Won" })
+  search_vector Unsupported("tsvector")? // PostgreSQL Full-Text Search indexing for the JSON data
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  blueprint     AppBlueprint @relation(fields: [blueprint_id], references: [id], onDelete: Cascade)
+  branch        Branch       @relation(fields: [branch_id], references: [id], onDelete: Cascade)
+  creator       User         @relation("RecordCreator", fields: [created_by], references: [id])
+  linked_chats  ChatMessage[]
+
+  // Massive performance boost for filtering JSON records per branch
+  @@index([branch_id, blueprint_id])
+  @@index([search_vector], type: Gin)
+}
+
+// ==========================================
+// 4. THE WORKSPACE / CHAT WEDGE
+// ==========================================
+
+model ChatChannel {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id     String   @db.Uuid
+  branch_id     String   @db.Uuid
+  name          String   // e.g., "#sales-alerts"
+  type          String   // "channel", "direct_message", "record_thread"
+
+  tenant        Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  branch        Branch   @relation(fields: [branch_id], references: [id], onDelete: Cascade)
+  messages      ChatMessage[]
+
+  @@index([branch_id])
+}
+
+model ChatMessage {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  channel_id       String   @db.Uuid
+  sender_id        String   @db.Uuid
+  content          String   @db.Text
+  is_system_event  Boolean  @default(false) // True if generated by a No-Code workflow or Agent
+  linked_record_id String?  @db.Uuid // The bridge linking the chat to the dynamic CRM record
+  created_at       DateTime @default(now())
+
+  channel          ChatChannel @relation(fields: [channel_id], references: [id], onDelete: Cascade)
+  sender           User        @relation(fields: [sender_id], references: [id], onDelete: Cascade)
+  linked_record    AppRecord?  @relation(fields: [linked_record_id], references: [id], onDelete: SetNull)
+
+  @@index([channel_id, created_at])
+}
+
+// ==========================================
+// 5. THE PULSE (CQRS ACTIVITY FEED)
+// ==========================================
+
+model PulseEvent {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id     String   @db.Uuid
+  branch_id     String?  @db.Uuid
+
+  // The Actor (Who did it?)
+  actor_type    String   // "human", "ai_agent", "system"
+  actor_id      String?  @db.Uuid
+  actor_name    String   // e.g., "Maria", "Agent Atlas"
+
+  // The Action (What happened?)
+  event_topic   String   // e.g., "hr.employee.created"
+  description   String   // Human-readable: "onboarded a new employee"
+
+  // The Target (To what?)
+  target_name   String   // e.g., "Abby"
+  target_url    String?  // Deep link to the CRM record or Chat Channel
+
+  created_at    DateTime @default(now())
+
+  tenant        Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@index([tenant_id, created_at(sort: Desc)])
+}

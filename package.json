@@ -1,0 +1,15 @@
+{
+  "name": "kantorcore",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/workspace",
+    "build": "npm run build -w apps/workspace",
+    "db:generate": "npm run generate -w @kantorcore/database",
+    "db:migrate": "npm run migrate:dev -w @kantorcore/database",
+    "db:studio": "npm run studio -w @kantorcore/database"
+  }
+}
