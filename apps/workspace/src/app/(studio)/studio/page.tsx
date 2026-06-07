@@ -6,13 +6,6 @@ import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
 type StudioView = 'arch' | 'core' | 'orch' | 'builder';
 type CoreTab = 'schemas' | 'gateway' | 'events';
 
-const TABS: { id: StudioView; label: string; dot: string }[] = [
-  { id: 'arch', label: 'Architecture', dot: 'var(--bg-inverted)' },
-  { id: 'core', label: 'API & Data Core', dot: 'var(--teal-500)' },
-  { id: 'orch', label: 'Logic Orchestrator', dot: 'var(--amber-500)' },
-  { id: 'builder', label: 'No-Code App Builder', dot: 'var(--amber-500)' },
-];
-
 const VIEW_LABELS: Record<StudioView, string> = {
   arch: 'System Architecture',
   core: 'API & Data Core',
@@ -127,16 +120,6 @@ export default function StudioPage() {
             Deploy
           </button>
         </header>
-
-        {/* Tabs */}
-        <div className="kc-studio-tabs">
-          {TABS.map((t) => (
-            <button key={t.id} className={`kc-studio-tab${view === t.id ? ' is-active' : ''}`} onClick={() => setView(t.id)}>
-              <span className="kc-studio-nav-dot" style={{ background: t.dot }} />
-              {t.label}
-            </button>
-          ))}
-        </div>
 
         {/* Content */}
         <div className="kc-studio-content">
