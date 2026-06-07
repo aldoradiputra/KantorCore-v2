@@ -3,6 +3,7 @@ import '@/styles/design-tokens.css';
 import '@/styles/components.css';
 import '@/styles/shell.css';
 import '@/styles/bento.css';
+import '@/styles/studio.css';
 import './globals.css';
 
 export const metadata: Metadata = {
