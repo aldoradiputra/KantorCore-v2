@@ -28,20 +28,13 @@ const bottomItems = [
 export function Rail() {
   const activeModule = useWorkspaceStore((s) => s.activeModule);
   const setActiveModule = useWorkspaceStore((s) => s.setActiveModule);
-  const setBentoOpen = useWorkspaceStore((s) => s.setBentoOpen);
   const router = useRouter();
 
   return (
     <aside className="kc-rail">
-      <button
-        type="button"
-        className="kc-rail-logo"
-        onClick={() => setBentoOpen(true)}
-        title="Switch surface"
-        aria-label="Open application launcher"
-      >
+      <div className="kc-rail-logo">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-      </button>
+      </div>
       {railItems.map((item) => (
         <button
           key={item.id}

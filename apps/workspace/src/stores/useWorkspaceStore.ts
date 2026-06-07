@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import type { TenantContext } from '@/types/tenant';
 import type { AuthUser, Conglomerate, TenantStatus } from '@/types/auth';
 import { mockOnlineColleagues, type OnlineColleague } from '@/mocks/presence';
-import type { UserRole } from '@/config/surfaces';
 
 export type ModuleId = 'workspace' | 'hr' | 'finance' | 'inventory' | 'procurement' | 'sales' | 'crm' | 'projects' | 'timesheets' | 'expenses' | 'chat' | 'omnichannel' | 'helpdesk' | 'documents';
 export type ViewMode = 'list' | 'kanban' | 'calendar' | 'pivot';
@@ -41,11 +40,6 @@ interface WorkspaceState {
   /* Presence (mocked) */
   onlineColleagues: OnlineColleague[];
 
-  /* Global Bento Launcher — cross-surface navigation (HANDOFF.md §0) */
-  isBentoOpen: boolean;
-  /** RBAC demo role: gates which surfaces render in the launcher. */
-  userRole: UserRole;
-
   setUser: (user: AuthUser | null) => void;
   setSelectedContexts: (contexts: string[]) => void;
   toggleContext: (contextId: string) => void;
@@ -72,8 +66,6 @@ interface WorkspaceState {
   selectThread: (id: string | null) => void;
   setAISection: (section: AISection) => void;
   setAdminSection: (section: AdminSection) => void;
-  setBentoOpen: (open: boolean) => void;
-  setUserRole: (role: UserRole) => void;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -96,8 +88,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   selectedAgentRunId: null,
   activeAdminSection: 'users',
   onlineColleagues: mockOnlineColleagues,
-  isBentoOpen: false,
-  userRole: 'admin',
 
   setUser: (user) => set({ user }),
   setSelectedContexts: (contexts) => set({ selectedContexts: contexts }),
@@ -146,10 +136,4 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   selectThread: (id) => set({ selectedThreadId: id }),
   setAISection: (section) => set({ activeAISection: section }),
   setAdminSection: (section) => set({ activeAdminSection: section }),
-  setBentoOpen: (open) => set({ isBentoOpen: open }),
-  setUserRole: (role) => {
-    // Persist for parity with the wireframe prototype (localStorage('kc_role')).
-    if (typeof window !== 'undefined') localStorage.setItem('kc_role', role);
-    set({ userRole: role });
-  },
 }));
