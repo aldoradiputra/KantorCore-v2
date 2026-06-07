@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/shell/Sidebar';
 import { Topbar } from '@/components/shell/Topbar';
 import { CommandPalette } from '@/components/shell/CommandPalette';
 import { NotificationPanel } from '@/components/shell/NotificationPanel';
+import { BentoLauncher } from '@/components/shell/BentoLauncher';
 import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
 import { mockTenant } from '@/mocks/tenant';
 import { mockAuthUser } from '@/mocks/corporate';
@@ -37,6 +38,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       </div>
       <CommandPalette />
       <NotificationPanel />
+      <BentoLauncher />
     </div>
   );
 }
