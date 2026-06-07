@@ -6,7 +6,6 @@ import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
 import { useAvailableTenants } from '@/lib/useTenants';
 import { resolveContextsAcross, type ResolvedContext } from '@/lib/corporate';
 import { daysRemaining } from '@/lib/trial';
-import { MODULE_NAV } from '@/config/moduleNav';
 
 const shortCompany = (name: string) => name.replace(/^PT\s+/, '');
 
@@ -36,12 +35,10 @@ export function Sidebar() {
   const selectedContexts = useWorkspaceStore((s) => s.selectedContexts);
   const tenantStatus = useWorkspaceStore((s) => s.tenantStatus);
   const trialEndsAt = useWorkspaceStore((s) => s.trialEndsAt);
-  const activeModule = useWorkspaceStore((s) => s.activeModule);
-  const toggleSidebar = useWorkspaceStore((s) => s.toggleSidebar);
 
   const resolved = resolveContextsAcross(tenants, selectedContexts);
-  const moduleNav = activeModule !== 'workspace' ? MODULE_NAV[activeModule] : null;
 
+  // Accordion open-state per context; first active entity expanded by default.
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const isOpen = (id: string, idx: number) => expanded[id] ?? idx === 0;
   const toggle = (id: string) => setExpanded((p) => ({ ...p, [id]: !(p[id] ?? false) }));
@@ -49,57 +46,25 @@ export function Sidebar() {
   return (
     <aside className="kc-side">
       <div className="kc-side-top" style={{ flexShrink: 0 }}>
-        <div className="kc-side-title">{moduleNav ? moduleNav.label : 'Workspaces'}</div>
-        {!moduleNav && <span className="kc-side-code">{resolved.length} aktif</span>}
-        <button
-          type="button"
-          className="kc-side-collapse"
-          onClick={toggleSidebar}
-          title="Collapse sidebar"
-          aria-label="Collapse sidebar"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-        </button>
+        <div className="kc-side-title">Workspaces</div>
+        <span className="kc-side-code">{resolved.length} aktif</span>
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: '6px 0' }}>
-        {moduleNav ? (
-          <ModuleNavSection nav={moduleNav} />
-        ) : (
-          <>
-            {resolved.length === 0 && (
-              <div style={{ padding: '20px 16px', font: '400 12px/1.5 var(--font-sans)', color: 'var(--text-muted)' }}>
-                Belum ada environment aktif. Pilih dari context switcher di atas.
-              </div>
-            )}
-            {resolved.map((rc, idx) => (
-              <AccordionSection key={rc.id} ctx={rc} open={isOpen(rc.id, idx)} onToggle={() => toggle(rc.id)} />
-            ))}
-          </>
+        {resolved.length === 0 && (
+          <div style={{ padding: '20px 16px', font: '400 12px/1.5 var(--font-sans)', color: 'var(--text-muted)' }}>
+            Belum ada environment aktif. Pilih dari context switcher di atas.
+          </div>
         )}
+
+        {resolved.map((rc, idx) => (
+          <AccordionSection key={rc.id} ctx={rc} open={isOpen(rc.id, idx)} onToggle={() => toggle(rc.id)} />
+        ))}
       </div>
 
       {tenantStatus === 'trial' && <TrialBanner endsAt={trialEndsAt} />}
       {tenantStatus === 'expired' && <ExpiredBanner />}
     </aside>
-  );
-}
-
-function ModuleNavSection({ nav }: { nav: { label: string; items: { name: string; kind: '#' | 'record' }[] } }) {
-  return (
-    <div style={{ padding: '0 8px' }}>
-      <div className="kc-side-h">{nav.label}</div>
-      {nav.items.map((item) => (
-        <a key={item.name} className="kc-side-item" href="#" onClick={(e) => e.preventDefault()}>
-          {item.kind === '#' ? (
-            <span className="kc-side-kind" style={{ font: '600 13px/1 var(--font-mono)', color: 'var(--text-muted)' }}>#</span>
-          ) : (
-            <svg className="kc-side-kind" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2" /></svg>
-          )}
-          <span>{item.name}</span>
-        </a>
-      ))}
-    </div>
   );
 }
 

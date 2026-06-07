@@ -262,6 +262,38 @@
 }
 .kc-studio-deploy:hover { background: var(--accent-500); }
 
+/* §3 — Content tabs ---- */
+.kc-studio-tabs {
+  height: 44px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: flex-end;
+  padding: 0 16px;
+  gap: 20px;
+}
+.kc-studio-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  height: 44px;
+  border-bottom: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 500 13px/1 var(--font-sans);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--d-fast);
+}
+.kc-studio-tab:hover { color: var(--text-primary); }
+.kc-studio-tab.is-active {
+  color: var(--text-primary);
+  border-color: var(--accent-600);
+}
+
 /* §4 — Content area ---- */
 .kc-studio-content {
   flex: 1;

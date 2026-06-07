@@ -28,27 +28,10 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  const sidebarCollapsed = useWorkspaceStore((s) => s.sidebarCollapsed);
-  const toggleSidebar = useWorkspaceStore((s) => s.toggleSidebar);
-
   return (
-    <div className={`kc-shell${sidebarCollapsed ? ' sidebar-collapsed' : ''}`} style={{ height: '100vh', overflow: 'hidden' }}>
+    <div className="kc-shell" style={{ height: '100vh', overflow: 'hidden' }}>
       <Rail />
-      {sidebarCollapsed ? (
-        <div className="kc-side-expand">
-          <button
-            type="button"
-            className="kc-side-expand-btn"
-            onClick={toggleSidebar}
-            title="Expand sidebar"
-            aria-label="Expand sidebar"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-          </button>
-        </div>
-      ) : (
-        <Sidebar />
-      )}
+      <Sidebar />
       <div className="kc-shell-main">
         <Topbar />
         <div className="kc-shell-content">{children}</div>

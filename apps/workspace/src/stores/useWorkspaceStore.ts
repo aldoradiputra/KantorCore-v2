@@ -41,9 +41,6 @@ interface WorkspaceState {
   /* Presence (mocked) */
   onlineColleagues: OnlineColleague[];
 
-  /* Sidebar collapse */
-  sidebarCollapsed: boolean;
-
   /* Global Bento Launcher — cross-surface navigation (HANDOFF.md §0) */
   isBentoOpen: boolean;
   /** RBAC demo role: gates which surfaces render in the launcher. */
@@ -75,7 +72,6 @@ interface WorkspaceState {
   selectThread: (id: string | null) => void;
   setAISection: (section: AISection) => void;
   setAdminSection: (section: AdminSection) => void;
-  toggleSidebar: () => void;
   setBentoOpen: (open: boolean) => void;
   setUserRole: (role: UserRole) => void;
 }
@@ -100,7 +96,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   selectedAgentRunId: null,
   activeAdminSection: 'users',
   onlineColleagues: mockOnlineColleagues,
-  sidebarCollapsed: false,
   isBentoOpen: false,
   userRole: 'admin',
 
@@ -151,7 +146,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   selectThread: (id) => set({ selectedThreadId: id }),
   setAISection: (section) => set({ activeAISection: section }),
   setAdminSection: (section) => set({ activeAdminSection: section }),
-  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setBentoOpen: (open) => set({ isBentoOpen: open }),
   setUserRole: (role) => {
     // Persist for parity with the wireframe prototype (localStorage('kc_role')).
