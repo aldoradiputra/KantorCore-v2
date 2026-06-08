@@ -8,6 +8,7 @@ const FIELD_TYPES: Array<{ type: FieldType; label: string; bg: string; fg: strin
   { type: 'number',   label: 'Number',   bg: 'var(--teal-50)',    fg: 'var(--teal-500)' },
   { type: 'currency', label: 'Currency', bg: 'var(--amber-50)',   fg: 'var(--amber-500)' },
   { type: 'date',     label: 'Date',     bg: 'var(--purple-50)',  fg: 'var(--purple-500)' },
+  { type: 'relation', label: 'Relation', bg: 'var(--rose-50)',    fg: 'var(--rose-500)' },
 ];
 
 function colorForType(type: FieldType): { bg: string; fg: string } {
@@ -45,12 +46,20 @@ function IconDate({ size = 16 }: { size?: number }) {
   );
 }
 
+function IconRelation({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 17H7A5 5 0 017 7h2M15 7h2a5 5 0 010 10h-2M8 12h8" />
+    </svg>
+  );
+}
+
 const ICON_MAP: Record<FieldType, (props: { size?: number }) => React.ReactElement> = {
   string: IconText,
   number: IconNumber,
   currency: IconCurrency,
   date: IconDate,
-  relation: IconText,
+  relation: IconRelation,
 };
 
 /* ─── Main page ─── */
@@ -113,7 +122,7 @@ function BlueprintPreview() {
   );
 }
 
-/* ─── Pane 1: Toolbox (Left, 250px) ─── */
+/* ─── Pane 1: Toolbox (Left, w-64) ─── */
 
 function Toolbox() {
   const addField = useStudioStore((s) => s.addField);
@@ -142,31 +151,11 @@ function Toolbox() {
           );
         })}
       </div>
-
-      {/* Relation (coming soon) */}
-      <div style={{ padding: '0 16px 16px' }}>
-        <div style={{ font: '600 10px/1 var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-          Advanced
-        </div>
-        <button
-          className="kc-sb-tool-btn"
-          onClick={() => addField('relation')}
-          style={{ width: '100%', flexDirection: 'row', padding: '10px 12px', gap: 10 }}
-        >
-          <div className="kc-sb-tool-icon" style={{ background: 'var(--rose-50)', color: 'var(--rose-500)', width: 28, height: 28 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 17H7A5 5 0 017 7h2M15 7h2a5 5 0 010 10h-2M8 12h8" />
-            </svg>
-          </div>
-          <span>Relation</span>
-          <span className="kc-badge" style={{ marginLeft: 'auto', fontSize: 9 }}>LINK</span>
-        </button>
-      </div>
     </aside>
   );
 }
 
-/* ─── Pane 2: Canvas (Center, Auto-width) ─── */
+/* ─── Pane 2: Canvas (Center, flex-1, bg-muted/30) ─── */
 
 function Canvas() {
   const blueprintName = useStudioStore((s) => s.blueprintName);
@@ -179,11 +168,8 @@ function Canvas() {
   return (
     <main className="kc-sb-canvas" onClick={() => setActiveField(null)}>
       <div className="kc-sb-canvas-inner">
-        {/* Blueprint name */}
+        {/* Blueprint name — large unstyled heading input */}
         <div style={{ marginBottom: 24 }}>
-          <label style={{ font: '600 10px/1 var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
-            Blueprint Name
-          </label>
           <input
             className="kc-sb-name-input"
             value={blueprintName}
@@ -191,6 +177,9 @@ function Canvas() {
             placeholder="Untitled App"
             onClick={(e) => e.stopPropagation()}
           />
+          <div style={{ font: '400 12px/1 var(--font-mono)', color: 'var(--text-muted)', marginTop: 6 }}>
+            Schema blueprint
+          </div>
         </div>
 
         {/* Divider */}
@@ -276,7 +265,7 @@ function Canvas() {
   );
 }
 
-/* ─── Pane 3: Properties Panel (Right, 300px) ─── */
+/* ─── Pane 3: Properties Panel (Right, w-80) ─── */
 
 function PropertiesPanel() {
   const activeFieldId = useStudioStore((s) => s.activeFieldId);
@@ -303,7 +292,7 @@ function PropertiesPanel() {
               <path d="M15 15l-2 5L9 9l11 4-5 2z" /><path d="M21 3l-8.5 8.5" />
             </svg>
           </div>
-          <div className="kc-empty-desc">Select a field to edit properties.</div>
+          <div className="kc-empty-desc">Select a field to configure.</div>
         </div>
       ) : (
         <div className="kc-sb-props-body">
@@ -364,7 +353,7 @@ function PropertiesPanel() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
             </svg>
-            Remove Field
+            Delete Field
           </button>
         </div>
       )}
