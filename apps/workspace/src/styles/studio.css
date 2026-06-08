@@ -362,7 +362,7 @@
 
 /* Toolbox (left) */
 .kc-sb-toolbox {
-  width: 250px;
+  width: 256px;
   flex-shrink: 0;
   background: var(--bg-surface);
   border-right: 1px solid var(--border-subtle);
@@ -424,7 +424,7 @@
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  background: var(--bg-canvas);
+  background: color-mix(in srgb, var(--bg-canvas) 70%, var(--bg-sunken));
   display: flex;
   justify-content: center;
   padding: 32px 40px;
@@ -438,7 +438,7 @@
   border: 0;
   background: transparent;
   width: 100%;
-  font: 700 22px/1.2 var(--font-sans);
+  font: 700 30px/1.15 var(--font-sans);
   color: var(--text-primary);
   letter-spacing: -0.02em;
   padding: 0;
@@ -471,8 +471,8 @@
   box-shadow: var(--shadow-xs);
 }
 .kc-sb-field-card.is-active {
-  border-color: var(--accent-400);
-  box-shadow: var(--shadow-focus);
+  border-color: var(--accent-500);
+  box-shadow: 0 0 0 2px var(--accent-500);
 }
 .kc-sb-field-card-icon {
   width: 28px;
@@ -523,7 +523,7 @@
 
 /* Properties panel (right) */
 .kc-sb-props {
-  width: 300px;
+  width: 320px;
   flex-shrink: 0;
   background: var(--bg-surface);
   border-left: 1px solid var(--border-subtle);
